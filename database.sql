@@ -1,7 +1,3 @@
--- Create database if not exists
-CREATE DATABASE IF NOT EXISTS quiz_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE quiz_system;
-
 -- 1. users table (Students and Teachers)
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
