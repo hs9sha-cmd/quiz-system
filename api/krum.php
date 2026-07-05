@@ -213,9 +213,16 @@ if ($action === 'add_question') {
     
     if ($room !== 'all' && $room !== '') {
         $parts = explode('/', $room);
-        $query .= " AND u.class_level = ? AND u.room = ?";
-        $params[] = $parts[0] ?? '';
-        $params[] = $parts[1] ?? '';
+        $cls = $parts[0] ?? '';
+        $rm = $parts[1] ?? '';
+        
+        $query .= " AND u.class_level = ?";
+        $params[] = $cls;
+        
+        if ($rm !== 'all' && $rm !== '') {
+            $query .= " AND u.room = ?";
+            $params[] = $rm;
+        }
     }
     
     $query .= " GROUP BY u.id ORDER BY u.class_level, u.room, CAST(u.student_number AS UNSIGNED)";
@@ -275,9 +282,16 @@ if ($action === 'add_question') {
     
     if ($room !== 'all' && $room !== '') {
         $parts = explode('/', $room);
-        $query .= " AND u.class_level = ? AND u.room = ?";
-        $params[] = $parts[0] ?? '';
-        $params[] = $parts[1] ?? '';
+        $cls = $parts[0] ?? '';
+        $rm = $parts[1] ?? '';
+        
+        $query .= " AND u.class_level = ?";
+        $params[] = $cls;
+        
+        if ($rm !== 'all' && $rm !== '') {
+            $query .= " AND u.room = ?";
+            $params[] = $rm;
+        }
     }
     
     $query .= " GROUP BY u.id ORDER BY u.class_level, u.room, CAST(u.roll_number AS UNSIGNED)";
