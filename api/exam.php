@@ -114,54 +114,74 @@ if ($action === 'list_active') {
         exit;
     }
     
-    // Algorithm to select questions based on target_raw_score and topic
-    $topicCond = (!empty($attempt['topic'])) ? "AND topic = ?" : "";
-    $qStmt = $pdo->prepare("SELECT * FROM questions WHERE subject_id = ? $topicCond");
-    
-    if (!empty($attempt['topic'])) {
-        $qStmt->execute([$attempt['subject_id'], $attempt['topic']]);
-    } else {
-        $qStmt->execute([$attempt['subject_id']]);
+    // Algorithm to select questions based on Blueprint (or legacy topic)
+    $blueprint = json_decode($attempt['topic'], true);
+    if (!is_array($blueprint)) {
+        // Legacy fallback
+        $blueprint = [
+            ['topic' => $attempt['topic'], 'score' => (int)$attempt['target_raw_score']]
+        ];
     }
     
-    $all_questions = $qStmt->fetchAll();
-    
-    // Separate into 1-point and 2-point pools
-    $pool_1 = [];
-    $pool_2 = [];
-    foreach ($all_questions as $q) {
-        if ($q['points'] == 1) $pool_1[] = $q;
-        else if ($q['points'] == 2) $pool_2[] = $q;
-    }
-    
-    shuffle($pool_1);
-    shuffle($pool_2);
-    
-    $target = $attempt['target_raw_score'];
     $selected_questions = [];
-    $current_score = 0;
     
-    // Strategy: Try to pick randomly, but favor mixing
-    // For simplicity: while current_score < target, try to pick 2-pt if target-current >= 2, else pick 1-pt
-    while ($current_score < $target) {
-        $diff = $target - $current_score;
-        $picked = null;
+    foreach ($blueprint as $bp) {
+        $topicName = $bp['topic'] ?? '';
+        $target = (int)($bp['score'] ?? 0);
         
-        if ($diff >= 2 && count($pool_2) > 0 && (rand(0, 1) == 1 || count($pool_1) == 0)) {
-            $picked = array_pop($pool_2);
-            $current_score += 2;
-        } elseif (count($pool_1) > 0) {
-            $picked = array_pop($pool_1);
-            $current_score += 1;
-        } elseif (count($pool_2) > 0 && $diff >= 2) {
-             $picked = array_pop($pool_2);
-             $current_score += 2;
+        if ($target <= 0) continue;
+        
+        $topicCond = (!empty($topicName) && $topicName !== '*') ? "AND topic = ?" : "";
+        $qStmt = $pdo->prepare("SELECT * FROM questions WHERE subject_id = ? $topicCond");
+        
+        if (!empty($topicName) && $topicName !== '*') {
+            $qStmt->execute([$attempt['subject_id'], $topicName]);
         } else {
-            break; // Cannot fulfill exactly
+            $qStmt->execute([$attempt['subject_id']]);
         }
         
-        if ($picked) {
-            $selected_questions[] = $picked;
+        $all_questions = $qStmt->fetchAll();
+        
+        // Separate into 1-point and 2-point pools
+        $pool_1 = [];
+        $pool_2 = [];
+        foreach ($all_questions as $q) {
+            // Check if not already selected (to prevent duplicates if wildcard is used alongside specific topics)
+            $is_duplicate = false;
+            foreach($selected_questions as $sq) {
+                if ($sq['id'] == $q['id']) { $is_duplicate = true; break; }
+            }
+            if ($is_duplicate) continue;
+            
+            if ($q['points'] == 1) $pool_1[] = $q;
+            else if ($q['points'] == 2) $pool_2[] = $q;
+        }
+        
+        shuffle($pool_1);
+        shuffle($pool_2);
+        
+        $topic_score = 0;
+        
+        while ($topic_score < $target) {
+            $diff = $target - $topic_score;
+            $picked = null;
+            
+            if ($diff >= 2 && count($pool_2) > 0 && (rand(0, 1) == 1 || count($pool_1) == 0)) {
+                $picked = array_pop($pool_2);
+                $topic_score += 2;
+            } elseif (count($pool_1) > 0) {
+                $picked = array_pop($pool_1);
+                $topic_score += 1;
+            } elseif (count($pool_2) > 0 && $diff >= 2) {
+                 $picked = array_pop($pool_2);
+                 $topic_score += 2;
+            } else {
+                break; // Cannot fulfill exactly for this topic
+            }
+            
+            if ($picked) {
+                $selected_questions[] = $picked;
+            }
         }
     }
     

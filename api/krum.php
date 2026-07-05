@@ -98,7 +98,7 @@ if ($action === 'add_question') {
     $subject_id = 1;
     $score_structure_id = 1; // Default to 1, no longer used in UI
     
-    $topic = trim($_POST['topic'] ?? '');
+    $topic = trim($_POST['topic_blueprint'] ?? $_POST['topic'] ?? '');
     $title = trim($_POST['title'] ?? 'การสอบใหม่');
     $target_raw_score = (int)($_POST['target_raw_score'] ?? 10);
     $time_limit = (int)($_POST['time_limit_minutes'] ?? 30);

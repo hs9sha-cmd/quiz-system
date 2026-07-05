@@ -158,20 +158,22 @@
                         <input type="text" name="title" placeholder="เช่น สอบย่อยครั้งที่ 1" required>
                     </div>
                     <div class="form-group">
-                        <label>เรื่องที่สอบ (Topic)</label>
-                        <select name="topic" id="topic-select">
-                            <option value="">-- สุ่มทั้งหมดทุกเรื่อง --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
                         <label>ห้องเป้าหมาย</label>
                         <select name="target_room" id="room-select">
                             <option value="all">-- เปิดสอบทุกคน (ทุกห้อง) --</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>เป้าหมายคะแนนดิบ</label>
-                        <input type="number" name="target_raw_score" value="10" required>
+                    <div style="grid-column: 1 / -1; background: var(--bg-light); padding: 1rem; border-radius: 8px;">
+                        <label style="display:block; margin-bottom: 0.5rem; font-weight:600;">โครงสร้างข้อสอบ (Blueprint)</label>
+                        <div id="blueprint-container">
+                            <!-- Initial row injected by JS -->
+                        </div>
+                        <button type="button" onclick="addBlueprintRow()" style="margin-top:0.5rem; background:#fff; border:1px dashed var(--border-color); padding:0.5rem; width:100%; border-radius:4px; cursor:pointer;">+ เพิ่มหัวข้อ</button>
+                        <div style="margin-top: 1rem; text-align:right; font-weight:600; font-size:1.1rem; color:var(--text-primary);">
+                            คะแนนเต็มของการสอบครั้งนี้: <span id="blueprint-total" style="color:var(--accent-blue);">10</span> คะแนน
+                        </div>
+                        <input type="hidden" name="topic_blueprint" id="topic-blueprint-input">
+                        <input type="hidden" name="target_raw_score" id="target-raw-score-input" value="10">
                     </div>
                     <div class="form-group">
                         <label>เวลา (นาที)</label>
@@ -283,25 +285,71 @@
             loadFormOptions();
         }
 
+        window.examTopics = [];
+        
         async function loadFormOptions() {
             const res = await adminApiCall('krum.php?action=get_form_options');
             if (res.success) {
                 // Populate Topics
-                const topicSelect = document.getElementById('topic-select');
-                let topicHtml = '<option value="">-- สุ่มทั้งหมดทุกเรื่อง --</option>';
-                res.topics.forEach(t => topicHtml += `<option value="${t}">${t}</option>`);
-                topicSelect.innerHTML = topicHtml;
+                window.examTopics = res.topics;
+                
+                // Add initial blueprint row if empty
+                if(document.getElementById('blueprint-container').children.length === 0) {
+                    addBlueprintRow();
+                }
 
                 // Populate Rooms
                 const roomSelect = document.getElementById('room-select');
                 let roomHtml = '<option value="all">-- เปิดสอบทุกคน (ทุกห้อง) --</option>';
                 res.rooms.forEach(r => {
-                    const roomName = `${r.class_level}/${r.room}`;
-                    roomHtml += `<option value="${roomName}">${roomName}</option>`;
+                    roomHtml += `<option value="${r.class_level}/${r.room}">${r.class_level}/${r.room}</option>`;
                 });
                 roomSelect.innerHTML = roomHtml;
+                
+                const exportRoomSelect = document.getElementById('export-room-select');
+                exportRoomSelect.innerHTML = roomHtml;
             }
         }
+        
+        function addBlueprintRow() {
+            const container = document.getElementById('blueprint-container');
+            const row = document.createElement('div');
+            row.className = 'blueprint-row';
+            row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;';
+            
+            let options = '<option value="*">-- สุ่มทั้งหมดทุกเรื่อง (ไม่แยก) --</option>';
+            window.examTopics.forEach(t => {
+                options += `<option value="${t}">${t}</option>`;
+            });
+            
+            row.innerHTML = `
+                <select class="blueprint-topic" required style="flex: 1; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" onchange="updateBlueprintData()">
+                    ${options}
+                </select>
+                <input type="number" class="blueprint-score" placeholder="คะแนน" required min="1" value="10" style="width: 100px; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" oninput="updateBlueprintData()">
+                <button type="button" onclick="this.parentElement.remove(); updateBlueprintData();" style="background:var(--danger); color:white; border:none; border-radius:4px; padding:0.5rem; cursor:pointer; width:36px;">X</button>
+            `;
+            container.appendChild(row);
+            updateBlueprintData();
+        }
+        
+        function updateBlueprintData() {
+            const rows = document.querySelectorAll('.blueprint-row');
+            let total = 0;
+            let blueprint = [];
+            
+            rows.forEach(row => {
+                const topic = row.querySelector('.blueprint-topic').value;
+                const score = parseInt(row.querySelector('.blueprint-score').value) || 0;
+                total += score;
+                blueprint.push({ topic, score });
+            });
+            
+            document.getElementById('blueprint-total').innerText = total;
+            document.getElementById('target-raw-score-input').value = total;
+            document.getElementById('topic-blueprint-input').value = JSON.stringify(blueprint);
+        }
+
         
         async function loadStudents() {
             const res = await adminApiCall('admin.php?action=list_students');
