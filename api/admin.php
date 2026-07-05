@@ -68,10 +68,10 @@ if ($action === 'list_students') {
         while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
             if (count($data) < 4) continue;
             
-            $username = trim($data[0]);
-            $fullName = trim($data[1]);
-            $classroom = trim($data[2]);
-            $rollNumber = trim($data[3]);
+            $rollNumber = trim($data[0]);
+            $username = trim($data[1]);
+            $fullName = trim($data[2]);
+            $classroom = trim($data[3]);
             
             if (empty($username) || empty($fullName)) continue;
 
