@@ -175,9 +175,9 @@
                     <div style="grid-column: 1 / -1; background: var(--bg-light); padding: 1rem; border-radius: 8px;">
                         <label style="display:block; margin-bottom: 0.5rem; font-weight:600;">โครงสร้างข้อสอบ (Blueprint)</label>
                         <div id="blueprint-container">
-                            <!-- Initial row injected by JS -->
+                            <!-- Unit blocks injected by JS -->
                         </div>
-                        <button type="button" onclick="addBlueprintRow()" style="margin-top:0.5rem; background:#fff; border:1px dashed var(--border-color); padding:0.5rem; width:100%; border-radius:4px; cursor:pointer;">+ เพิ่มหัวข้อ</button>
+                        <button type="button" onclick="addBlueprintUnit()" style="margin-top:0.5rem; background:#fff; border:1px dashed var(--border-color); padding:0.5rem; width:100%; border-radius:4px; cursor:pointer; font-weight: 600;">+ เพิ่มหัวข้อหลัก (Unit)</button>
                         <div style="margin-top: 1rem; text-align:right; font-weight:600; font-size:1.1rem; color:var(--text-primary);">
                             คะแนนเต็มของการสอบครั้งนี้: <span id="blueprint-total" style="color:var(--accent-blue);">10</span> คะแนน
                         </div>
@@ -304,7 +304,7 @@
                 
                 // Add initial blueprint row if empty
                 if(document.getElementById('blueprint-container').children.length === 0) {
-                    addBlueprintRow();
+                    addBlueprintUnit();
                 }
 
                 // Populate Rooms
@@ -327,59 +327,91 @@
             }
         }
         
-        function addBlueprintRow() {
+        function addBlueprintUnit() {
             const container = document.getElementById('blueprint-container');
-            const row = document.createElement('div');
-            row.className = 'blueprint-row';
-            row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; flex-wrap: wrap;';
+            const unitBox = document.createElement('div');
+            unitBox.className = 'blueprint-unit-box';
+            unitBox.style.cssText = 'background: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem; margin-bottom: 1rem;';
             
             let unitOptions = '<option value="*">-- สุ่มทุก Unit --</option>';
             Object.keys(window.blueprintHierarchy).forEach(u => {
                 unitOptions += `<option value="${u}">${u}</option>`;
             });
             
+            unitBox.innerHTML = `
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; align-items: center;">
+                    <label style="font-weight: 600; white-space: nowrap;">Unit:</label>
+                    <select class="blueprint-unit" style="flex: 1; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" onchange="onBlueprintUnitChange(this); updateBlueprintData();">
+                        ${unitOptions}
+                    </select>
+                    <button type="button" onclick="this.parentElement.parentElement.remove(); updateBlueprintData();" style="background:var(--danger); color:white; border:none; border-radius:4px; padding:0.5rem; cursor:pointer; width:36px;" title="ลบ Unit นี้">X</button>
+                </div>
+                <div class="blueprint-topics-container"></div>
+                <button type="button" onclick="addBlueprintTopic(this.parentElement)" style="margin-top:0.5rem; background:var(--bg-light); border:1px dashed var(--border-color); padding:0.5rem; width:100%; border-radius:4px; cursor:pointer; font-size: 0.9rem;">+ เพิ่มเรื่องย่อย (Topic)</button>
+            `;
+            container.appendChild(unitBox);
+            
+            // Add initial topic row
+            addBlueprintTopic(unitBox);
+        }
+        
+        function addBlueprintTopic(unitBox) {
+            const topicContainer = unitBox.querySelector('.blueprint-topics-container');
+            const unitSelect = unitBox.querySelector('.blueprint-unit');
+            const row = document.createElement('div');
+            row.className = 'blueprint-topic-row';
+            row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; padding-left: 1rem;';
+            
             row.innerHTML = `
-                <select class="blueprint-unit" style="flex: 1; min-width: 150px; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" onchange="onBlueprintUnitChange(this); updateBlueprintData();">
-                    ${unitOptions}
-                </select>
-                <select class="blueprint-topic" style="flex: 1; min-width: 150px; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" onchange="updateBlueprintData()">
+                <select class="blueprint-topic" style="flex: 1; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" onchange="updateBlueprintData()">
                     <option value="*">-- สุ่มทุกเรื่องใน Unit นี้ --</option>
                 </select>
                 <input type="number" class="blueprint-score" placeholder="คะแนน" required min="1" value="10" style="width: 80px; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" oninput="updateBlueprintData()">
-                <button type="button" onclick="this.parentElement.remove(); updateBlueprintData();" style="background:var(--danger); color:white; border:none; border-radius:4px; padding:0.5rem; cursor:pointer; width:36px;">X</button>
+                <button type="button" onclick="this.parentElement.remove(); updateBlueprintData();" style="background:var(--danger); color:white; border:none; border-radius:4px; padding:0.5rem; cursor:pointer; width:36px;" title="ลบ Topic นี้">X</button>
             `;
-            container.appendChild(row);
+            topicContainer.appendChild(row);
             
-            // Initialize the topic dropdown based on the default unit selection
-            onBlueprintUnitChange(row.querySelector('.blueprint-unit'));
+            // Initialize topic options
+            onBlueprintUnitChange(unitSelect);
             updateBlueprintData();
         }
         
         function onBlueprintUnitChange(unitSelect) {
-            const topicSelect = unitSelect.parentElement.querySelector('.blueprint-topic');
+            const unitBox = unitSelect.closest('.blueprint-unit-box');
+            const topicSelects = unitBox.querySelectorAll('.blueprint-topic');
             const unit = unitSelect.value;
-            let topicOptions = '<option value="*">-- สุ่มทุกเรื่องใน Unit นี้ --</option>';
             
+            let topicOptions = '<option value="*">-- สุ่มทุกเรื่องใน Unit นี้ --</option>';
             if (unit !== '*' && window.blueprintHierarchy[unit]) {
                 window.blueprintHierarchy[unit].forEach(t => {
                     topicOptions += `<option value="${t}">${t}</option>`;
                 });
             }
             
-            topicSelect.innerHTML = topicOptions;
+            topicSelects.forEach(select => {
+                const currentVal = select.value;
+                select.innerHTML = topicOptions;
+                if (Array.from(select.options).some(opt => opt.value === currentVal)) {
+                    select.value = currentVal;
+                }
+            });
         }
         
         function updateBlueprintData() {
-            const rows = document.querySelectorAll('.blueprint-row');
             let total = 0;
             let blueprint = [];
+            const unitBoxes = document.querySelectorAll('.blueprint-unit-box');
             
-            rows.forEach(row => {
-                const unit = row.querySelector('.blueprint-unit').value;
-                const topic = row.querySelector('.blueprint-topic').value;
-                const score = parseInt(row.querySelector('.blueprint-score').value) || 0;
-                total += score;
-                blueprint.push({ unit, topic, score });
+            unitBoxes.forEach(box => {
+                const unit = box.querySelector('.blueprint-unit').value;
+                const topicRows = box.querySelectorAll('.blueprint-topic-row');
+                
+                topicRows.forEach(row => {
+                    const topic = row.querySelector('.blueprint-topic').value;
+                    const score = parseInt(row.querySelector('.blueprint-score').value) || 0;
+                    total += score;
+                    blueprint.push({ unit, topic, score });
+                });
             });
             
             document.getElementById('blueprint-total').innerText = total;
