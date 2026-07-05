@@ -89,13 +89,26 @@ if ($action === 'add_question') {
     echo json_encode(['success' => true, 'questions' => $stmt->fetchAll()]);
 
 } elseif ($action === 'get_form_options') {
-    $stmt1 = $pdo->query("SELECT DISTINCT topic FROM questions WHERE topic != '' ORDER BY topic");
-    $topics = $stmt1->fetchAll(PDO::FETCH_COLUMN);
+    $stmt1 = $pdo->query("SELECT DISTINCT unit, topic FROM questions ORDER BY unit, topic");
+    $unit_topics = $stmt1->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Group topics by unit
+    $hierarchy = [];
+    foreach($unit_topics as $row) {
+        $u = $row['unit'] ?: 'ทั่วไป';
+        $t = $row['topic'] ?: 'ทั่วไป';
+        if (!isset($hierarchy[$u])) {
+            $hierarchy[$u] = [];
+        }
+        if (!in_array($t, $hierarchy[$u])) {
+            $hierarchy[$u][] = $t;
+        }
+    }
 
     $stmt2 = $pdo->query("SELECT DISTINCT class_level, room FROM users WHERE role='student' AND class_level != '' ORDER BY class_level, room");
     $rooms = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 
-    echo json_encode(['success' => true, 'topics' => $topics, 'rooms' => $rooms]);
+    echo json_encode(['success' => true, 'blueprint_hierarchy' => $hierarchy, 'rooms' => $rooms]);
 
 } elseif ($action === 'create_exam') {
     $subject_id = 1;
@@ -114,6 +127,9 @@ if ($action === 'add_question') {
         $parts = explode('/', $target_room_val);
         $target_class_level = $parts[0] ?? '';
         $target_room = $parts[1] ?? '';
+        if ($target_room === 'all') {
+            $target_room = ''; // So it matches any room for this class
+        }
     }
     
     $is_active = isset($_POST['is_active']) ? 1 : 0;

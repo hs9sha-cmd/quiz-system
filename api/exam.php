@@ -126,19 +126,28 @@ if ($action === 'list_active') {
     $selected_questions = [];
     
     foreach ($blueprint as $bp) {
+        $unitName = $bp['unit'] ?? '';
         $topicName = $bp['topic'] ?? '';
         $target = (int)($bp['score'] ?? 0);
         
         if ($target <= 0) continue;
         
-        $topicCond = (!empty($topicName) && $topicName !== '*') ? "AND topic = ?" : "";
-        $qStmt = $pdo->prepare("SELECT * FROM questions WHERE subject_id = ? $topicCond");
+        $conditions = ["subject_id = ?"];
+        $params = [$attempt['subject_id']];
+        
+        if (!empty($unitName) && $unitName !== '*') {
+            $conditions[] = "unit = ?";
+            $params[] = $unitName;
+        }
         
         if (!empty($topicName) && $topicName !== '*') {
-            $qStmt->execute([$attempt['subject_id'], $topicName]);
-        } else {
-            $qStmt->execute([$attempt['subject_id']]);
+            $conditions[] = "topic = ?";
+            $params[] = $topicName;
         }
+        
+        $whereClause = implode(" AND ", $conditions);
+        $qStmt = $pdo->prepare("SELECT * FROM questions WHERE $whereClause");
+        $qStmt->execute($params);
         
         $all_questions = $qStmt->fetchAll();
         

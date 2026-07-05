@@ -294,13 +294,13 @@
             loadFormOptions();
         }
 
-        window.examTopics = [];
+        window.blueprintHierarchy = {};
         
         async function loadFormOptions() {
             const res = await adminApiCall('krum.php?action=get_form_options');
             if (res.success) {
-                // Populate Topics
-                window.examTopics = res.topics;
+                // Populate Hierarchy
+                window.blueprintHierarchy = res.blueprint_hierarchy;
                 
                 // Add initial blueprint row if empty
                 if(document.getElementById('blueprint-container').children.length === 0) {
@@ -310,8 +310,15 @@
                 // Populate Rooms
                 const roomSelect = document.getElementById('room-select');
                 let roomHtml = '<option value="all">-- เปิดสอบทุกคน (ทุกห้อง) --</option>';
+                
+                // Group rooms by class_level
+                let currentClassLevel = '';
                 res.rooms.forEach(r => {
-                    roomHtml += `<option value="${r.class_level}/${r.room}">${r.class_level}/${r.room}</option>`;
+                    if (currentClassLevel !== r.class_level) {
+                        currentClassLevel = r.class_level;
+                        roomHtml += `<option value="${r.class_level}/all" style="font-weight: bold; background: #e2e8f0; color: #000;">-- เปิดสอบ ${r.class_level} ทั้งหมด --</option>`;
+                    }
+                    roomHtml += `<option value="${r.class_level}/${r.room}">&nbsp;&nbsp;&nbsp;&nbsp;${r.class_level}/${r.room}</option>`;
                 });
                 roomSelect.innerHTML = roomHtml;
                 
@@ -324,22 +331,42 @@
             const container = document.getElementById('blueprint-container');
             const row = document.createElement('div');
             row.className = 'blueprint-row';
-            row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;';
+            row.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; flex-wrap: wrap;';
             
-            let options = '<option value="*">-- สุ่มทั้งหมดทุกเรื่อง (ไม่แยก) --</option>';
-            window.examTopics.forEach(t => {
-                options += `<option value="${t}">${t}</option>`;
+            let unitOptions = '<option value="*">-- สุ่มทุก Unit --</option>';
+            Object.keys(window.blueprintHierarchy).forEach(u => {
+                unitOptions += `<option value="${u}">${u}</option>`;
             });
             
             row.innerHTML = `
-                <select class="blueprint-topic" required style="flex: 1; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" onchange="updateBlueprintData()">
-                    ${options}
+                <select class="blueprint-unit" style="flex: 1; min-width: 150px; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" onchange="onBlueprintUnitChange(this); updateBlueprintData();">
+                    ${unitOptions}
                 </select>
-                <input type="number" class="blueprint-score" placeholder="คะแนน" required min="1" value="10" style="width: 100px; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" oninput="updateBlueprintData()">
+                <select class="blueprint-topic" style="flex: 1; min-width: 150px; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" onchange="updateBlueprintData()">
+                    <option value="*">-- สุ่มทุกเรื่องใน Unit นี้ --</option>
+                </select>
+                <input type="number" class="blueprint-score" placeholder="คะแนน" required min="1" value="10" style="width: 80px; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" oninput="updateBlueprintData()">
                 <button type="button" onclick="this.parentElement.remove(); updateBlueprintData();" style="background:var(--danger); color:white; border:none; border-radius:4px; padding:0.5rem; cursor:pointer; width:36px;">X</button>
             `;
             container.appendChild(row);
+            
+            // Initialize the topic dropdown based on the default unit selection
+            onBlueprintUnitChange(row.querySelector('.blueprint-unit'));
             updateBlueprintData();
+        }
+        
+        function onBlueprintUnitChange(unitSelect) {
+            const topicSelect = unitSelect.parentElement.querySelector('.blueprint-topic');
+            const unit = unitSelect.value;
+            let topicOptions = '<option value="*">-- สุ่มทุกเรื่องใน Unit นี้ --</option>';
+            
+            if (unit !== '*' && window.blueprintHierarchy[unit]) {
+                window.blueprintHierarchy[unit].forEach(t => {
+                    topicOptions += `<option value="${t}">${t}</option>`;
+                });
+            }
+            
+            topicSelect.innerHTML = topicOptions;
         }
         
         function updateBlueprintData() {
@@ -348,10 +375,11 @@
             let blueprint = [];
             
             rows.forEach(row => {
+                const unit = row.querySelector('.blueprint-unit').value;
                 const topic = row.querySelector('.blueprint-topic').value;
                 const score = parseInt(row.querySelector('.blueprint-score').value) || 0;
                 total += score;
-                blueprint.push({ topic, score });
+                blueprint.push({ unit, topic, score });
             });
             
             document.getElementById('blueprint-total').innerText = total;
