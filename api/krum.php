@@ -146,6 +146,25 @@ if ($action === 'add_question') {
         echo json_encode(['success' => false, 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()]);
     }
 
+} elseif ($action === 'delete_questions') {
+    $ids_str = $_POST['ids'] ?? '';
+    if (empty($ids_str)) {
+        echo json_encode(['success' => false, 'message' => 'ไม่มีข้อสอบที่ถูกเลือก']);
+        exit;
+    }
+    
+    // Sanitize to integers
+    $ids = array_map('intval', explode(',', $ids_str));
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    
+    try {
+        $stmt = $pdo->prepare("DELETE FROM questions WHERE id IN ($placeholders)");
+        $stmt->execute($ids);
+        echo json_encode(['success' => true, 'message' => 'ลบข้อสอบสำเร็จแล้ว']);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+    }
+
 } elseif ($action === 'get_score_structures') {
     $stmt = $pdo->query("SELECT * FROM score_structures WHERE subject_id = 1 ORDER BY order_index ASC");
     echo json_encode(['success' => true, 'structures' => $stmt->fetchAll()]);

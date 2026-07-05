@@ -132,11 +132,15 @@
             </div>
             
             <div class="glass-card">
-                <h3>คลังข้อสอบ</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3>คลังข้อสอบ</h3>
+                    <button type="button" class="btn" style="background: var(--danger); color: white; width: auto; font-size: 0.9rem; display: none;" id="delete-questions-btn" onclick="deleteSelectedQuestions()">ลบข้อที่เลือก</button>
+                </div>
                 <div style="margin-top: 1rem; overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr>
+                                <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-questions" onclick="toggleAllQuestions(this)"></th>
                                 <th>เรื่อง</th>
                                 <th>โจทย์</th>
                                 <th>คะแนน</th>
@@ -432,12 +436,49 @@
             const res = await adminApiCall('krum.php?action=list_questions');
             if (res.success) {
                 document.getElementById('questions-list').innerHTML = res.questions.map(q => `
-                    <tr>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="text-align: center;"><input type="checkbox" class="question-cb" value="${q.id}" onclick="updateDeleteQuestionBtn()"></td>
                         <td>${q.topic || 'ทั่วไป'}</td>
                         <td>${q.question_text}</td>
                         <td>${q.points}</td>
                     </tr>
                 `).join('');
+                document.getElementById('select-all-questions').checked = false;
+                updateDeleteQuestionBtn();
+            }
+        }
+        
+        function toggleAllQuestions(source) {
+            const checkboxes = document.querySelectorAll('.question-cb');
+            checkboxes.forEach(cb => cb.checked = source.checked);
+            updateDeleteQuestionBtn();
+        }
+
+        function updateDeleteQuestionBtn() {
+            const checkedCount = document.querySelectorAll('.question-cb:checked').length;
+            const btn = document.getElementById('delete-questions-btn');
+            if (checkedCount > 0) {
+                btn.style.display = 'block';
+                btn.innerText = `ลบข้อที่เลือก (${checkedCount})`;
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+        
+        async function deleteSelectedQuestions() {
+            const checkboxes = document.querySelectorAll('.question-cb:checked');
+            const ids = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (ids.length === 0) return;
+            
+            if (confirm(`คุณต้องการลบข้อสอบที่เลือกจำนวน ${ids.length} ข้อ ใช่หรือไม่?\n(คำเตือน: หากลบข้อสอบ คะแนนของนักเรียนที่เคยทำข้อสอบข้อนี้ไปแล้วจะได้รับผลกระทบ)`)) {
+                const res = await adminApiCall('krum.php', { action: 'delete_questions', ids: ids.join(',') });
+                if (res.success) {
+                    showAlert(res.message, 'success');
+                    loadQuestions();
+                } else {
+                    showAlert(res.message);
+                }
             }
         }
 
