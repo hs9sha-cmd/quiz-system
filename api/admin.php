@@ -119,10 +119,6 @@ if ($action === 'list_students') {
         $stmt = $pdo->prepare("DELETE FROM exam_attempts WHERE student_id IN ($placeholders)");
         $stmt->execute($idArray);
         
-        // Delete manual scores
-        $stmt = $pdo->prepare("DELETE FROM manual_scores WHERE student_id IN ($placeholders)");
-        $stmt->execute($idArray);
-        
         // Delete from users
         $stmt = $pdo->prepare("DELETE FROM users WHERE id IN ($placeholders) AND role = 'student'");
         $stmt->execute($idArray);
