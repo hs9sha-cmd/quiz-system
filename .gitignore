@@ -1,0 +1,12 @@
+# macOS files
+.DS_Store
+
+# IDE and Editor files
+.vscode/
+.idea/
+
+# Uploaded files or generated files (if any)
+# /uploads/
+
+# Optional: If you want to keep the local database config separate from the server one
+# config/db.php

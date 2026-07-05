@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบหลังบ้าน - Quiz System</title>
+    <link rel="icon" href="../favicon.png" type="image/png">
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        .admin-nav { display: flex; gap: 1rem; margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem; }
+        .nav-tab { padding: 0.75rem 1.5rem; border-radius: 980px; background: #fff; border: 1px solid var(--border-color); cursor: pointer; white-space: nowrap; font-weight: 500; color: var(--text-secondary); transition: all 0.2s;}
+        .nav-tab.active { background: var(--text-primary); color: #fff; border-color: var(--text-primary); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <main style="max-width: 1000px; margin: 0 auto; width: 100%;">
+        <div class="dashboard-header">
+            <div>
+                <h2 style="color: var(--text-primary); font-size: 2rem;">Tech with M (Admin)</h2>
+                <p style="color: var(--text-secondary);">จัดการข้อมูลและข้อสอบ</p>
+            </div>
+            <button onclick="logout()" class="btn btn-secondary" style="width: auto;">ออกจากระบบ</button>
+        </div>
+
+        <div id="alert-container"></div>
+        
+        <div class="admin-nav">
+            <div class="nav-tab active" onclick="switchTab('tab-students', this)">นักเรียน</div>
+            <div class="nav-tab" onclick="switchTab('tab-questions', this)">คลังข้อสอบ</div>
+            <div class="nav-tab" onclick="switchTab('tab-exams', this)">จัดการสอบ</div>
+            <div class="nav-tab" onclick="switchTab('tab-export', this)">ส่งออกคะแนน</div>
+        </div>
+        
+        <!-- Tab: Students -->
+        <div id="tab-students" class="tab-content active">
+            <div class="glass-card" style="margin-bottom: 2rem;">
+                <h3>นำเข้าข้อมูลนักเรียน (Import CSV)</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                    คอลัมน์: student_code, full_name, classroom (เช่น ม.1/1), student_number
+                    <a href="template_students.csv" download style="color: var(--accent-blue); text-decoration: none; margin-left: 10px;">[ ดาวน์โหลดไฟล์ต้นแบบ ]</a>
+                </p>
+                <form id="import-csv-form" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="margin-bottom: 0; flex-grow: 1;">
+                        <input type="file" name="csv_file" accept=".csv" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: auto;">นำเข้าไฟล์</button>
+                </form>
+            </div>
+            
+            <div class="glass-card">
+                <h3>รายชื่อนักเรียนในระบบ</h3>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem; justify-content: space-between; align-items: center;">
+                    <input type="text" id="filter-all" placeholder="ค้นหา (ห้อง, เลขที่, รหัส, ชื่อ)..." oninput="renderStudents()" style="padding: 0.5rem; width: 300px;">
+                    <button onclick="deleteSelectedStudents()" class="btn btn-secondary" style="width: auto; background: var(--danger); color: white; border: none;">ลบนักเรียนที่เลือก</button>
+                </div>
+                <div style="margin-top: 1rem; overflow-x: auto;">
+                    <table style="width: 100%; text-align: left; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-color);">
+                                <th style="padding: 1rem; width: 50px;">
+                                    <input type="checkbox" id="select-all-students" onchange="toggleSelectAllStudents()">
+                                </th>
+                                <th style="padding: 1rem;">ชั้น/ห้อง</th>
+                                <th style="padding: 1rem;">เลขที่</th>
+                                <th style="padding: 1rem;">รหัส นร.</th>
+                                <th style="padding: 1rem;">ชื่อ-สกุล</th>
+                                <th style="padding: 1rem;">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Questions -->
+        <div id="tab-questions" class="tab-content">
+            <div class="glass-card" style="margin-bottom: 2rem;">
+                <h3>นำเข้าข้อสอบ (Import CSV)</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                    คอลัมน์ A-I: บท/เรื่อง, คะแนน(1/2), โจทย์, ก, ข, ค, ง, จ, เฉลย(A-E)
+                    <a href="template_questions.csv" download style="color: var(--accent-blue); text-decoration: none; margin-left: 10px;">[ ดาวน์โหลดไฟล์ต้นแบบ ]</a>
+                </p>
+                <form id="import-questions-form" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="margin-bottom: 0; flex-grow: 1;">
+                        <input type="file" name="csv_file" accept=".csv" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: auto;">นำเข้าข้อสอบ</button>
+                </form>
+            </div>
+            
+            <div class="glass-card" style="margin-bottom: 2rem;">
+                <h3>เพิ่มข้อสอบใหม่ (ทีละข้อ)</h3>
+                <form id="add-question-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                    <div class="form-group">
+                        <label>เรื่อง / หมวดหมู่ (Topic)</label>
+                        <input type="text" name="topic" placeholder="เช่น ของแข็งและของไหล" required>
+                    </div>
+                    <div class="form-group">
+                        <label>คะแนน (1 หรือ 2)</label>
+                        <select name="points" required>
+                            <option value="1">1 คะแนน</option>
+                            <option value="2">2 คะแนน</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>โจทย์</label>
+                        <input type="text" name="question_text" required>
+                    </div>
+                    <div class="form-group"><label>ก.</label><input type="text" name="option_a" required></div>
+                    <div class="form-group"><label>ข.</label><input type="text" name="option_b" required></div>
+                    <div class="form-group"><label>ค.</label><input type="text" name="option_c" required></div>
+                    <div class="form-group"><label>ง.</label><input type="text" name="option_d" required></div>
+                    <div class="form-group"><label>จ.</label><input type="text" name="option_e"></div>
+                    <div class="form-group">
+                        <label>ข้อที่ถูก</label>
+                        <select name="correct_option" required>
+                            <option value="A">ก.</option>
+                            <option value="B">ข.</option>
+                            <option value="C">ค.</option>
+                            <option value="D">ง.</option>
+                            <option value="E">จ.</option>
+                        </select>
+                    </div>
+                    <div style="grid-column: 1 / -1; margin-top:1rem;">
+                        <button type="submit" class="btn btn-primary" style="width: auto; padding: 0.75rem 2rem;">บันทึกข้อสอบ</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="glass-card">
+                <h3>คลังข้อสอบ</h3>
+                <div style="margin-top: 1rem; overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th>เรื่อง</th>
+                                <th>โจทย์</th>
+                                <th>คะแนน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="questions-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Exams -->
+        <div id="tab-exams" class="tab-content">
+            <div class="glass-card" style="margin-bottom: 2rem;">
+                <h3>เปิดการสอบ</h3>
+                <form id="create-exam-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                    <div class="form-group">
+                        <label>ชื่อการสอบ</label>
+                        <input type="text" name="title" placeholder="เช่น สอบย่อยครั้งที่ 1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>เรื่องที่สอบ (Topic)</label>
+                        <select name="topic" id="topic-select">
+                            <option value="">-- สุ่มทั้งหมดทุกเรื่อง --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>ห้องเป้าหมาย</label>
+                        <select name="target_room" id="room-select">
+                            <option value="all">-- เปิดสอบทุกคน (ทุกห้อง) --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>เป้าหมายคะแนนดิบ</label>
+                        <input type="number" name="target_raw_score" value="10" required>
+                    </div>
+                    <div class="form-group">
+                        <label>เวลา (นาที)</label>
+                        <input type="number" name="time_limit_minutes" value="30" required>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="is_active" value="1" checked style="width: auto;">
+                            <strong>เปิดให้สอบทันที</strong> (หากเอาออก จะแค่สร้างไว้แต่ยังปิดสอบอยู่)
+                        </label>
+                    </div>
+                    <div style="grid-column: 1 / -1; margin-top:1rem;">
+                        <button type="submit" class="btn btn-primary" style="width: auto; padding: 0.75rem 2rem;">สร้างการสอบ</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="glass-card">
+                <h3>รายการสอบ (Active & History)</h3>
+                <div style="margin-top: 1rem; overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th>ชื่อการสอบ</th>
+                                <th>ห้องเป้าหมาย</th>
+                                <th>สถานะ</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="exams-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Export Scores -->
+        <div id="tab-export" class="tab-content">
+            <div class="glass-card">
+                <h3>ส่งออกคะแนนสอบ (Export to CSV)</h3>
+                <p style="color:var(--text-secondary); margin-bottom:1.5rem;">เลือกการสอบและห้องเป้าหมาย เพื่อดาวน์โหลดคะแนนไปใส่ใน Google Sheet</p>
+                <form id="export-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>เลือกการสอบ</label>
+                        <select name="export_exam_id" id="export-exam-select" required>
+                            <option value="">-- เลือกการสอบ --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>เลือกห้องเป้าหมาย</label>
+                        <select name="export_room" id="export-room-select" required>
+                            <option value="all">-- ทุกห้อง --</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: none;">
+                        <input type="hidden" id="export-format" value="xlsx">
+                    </div>
+                    <div style="grid-column: 1 / -1;">
+                        <button type="submit" class="btn btn-primary" style="width: auto; padding: 0.75rem 2rem;">ดาวน์โหลดไฟล์</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="../js/app.js"></script>
+    <script>
+        const ADMIN_API_BASE = '../api/';
+        let allStudents = [];
+        let scoreStructures = [];
+
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            el.classList.add('active');
+        }
+
+        async function adminApiCall(endpoint, data = null) {
+            const options = { 
+                method: data ? 'POST' : 'GET',
+                credentials: 'same-origin'
+            };
+            if (data) {
+                if (data instanceof FormData) {
+                    options.body = data;
+                } else {
+                    const formData = new URLSearchParams();
+                    for (const key in data) { formData.append(key, data[key]); }
+                    options.body = formData;
+                    options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+                }
+            }
+            try {
+                const response = await fetch(`${ADMIN_API_BASE}${endpoint}`, options);
+                return await response.json();
+            } catch (err) {
+                return { success: false, message: 'Network error' };
+            }
+        }
+        
+        async function init() {
+            const res = await adminApiCall('auth.php', { action: 'me' });
+            if (!res.authenticated || res.user.role !== 'teacher') window.location.href = '../index.html';
+            
+            loadStudents();
+            loadQuestions();
+            loadExams();
+            loadScoreStructures();
+            loadFormOptions();
+        }
+
+        async function loadFormOptions() {
+            const res = await adminApiCall('krum.php?action=get_form_options');
+            if (res.success) {
+                // Populate Topics
+                const topicSelect = document.getElementById('topic-select');
+                let topicHtml = '<option value="">-- สุ่มทั้งหมดทุกเรื่อง --</option>';
+                res.topics.forEach(t => topicHtml += `<option value="${t}">${t}</option>`);
+                topicSelect.innerHTML = topicHtml;
+
+                // Populate Rooms
+                const roomSelect = document.getElementById('room-select');
+                let roomHtml = '<option value="all">-- เปิดสอบทุกคน (ทุกห้อง) --</option>';
+                res.rooms.forEach(r => {
+                    const roomName = `${r.class_level}/${r.room}`;
+                    roomHtml += `<option value="${roomName}">${roomName}</option>`;
+                });
+                roomSelect.innerHTML = roomHtml;
+            }
+        }
+        
+        async function loadStudents() {
+            const res = await adminApiCall('admin.php?action=list_students');
+            if (res.success) {
+                allStudents = res.students;
+                renderStudents();
+                
+                // Populate room select for Export
+                const rooms = [...new Set(allStudents.map(s => `${s.class_level}/${s.room}`))].sort();
+                let roomOptions = '<option value="all">-- ทุกห้อง --</option>';
+                rooms.forEach(r => {
+                    roomOptions += `<option value="${r}">${r}</option>`;
+                });
+                document.getElementById('export-room-select').innerHTML = roomOptions;
+            }
+        }
+
+        async function resetPassword(id) {
+            if (confirm('คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตรหัสผ่านของนักเรียนคนนี้เป็น "1234"? (นักเรียนจะต้องตั้งรหัสผ่านใหม่เมื่อเข้าสู่ระบบครั้งหน้า)')) {
+                const res = await adminApiCall('krum.php', { action: 'reset_password', student_id: id });
+                if (res.success) {
+                    showAlert(res.message, 'success');
+                } else {
+                    showAlert(res.message);
+                }
+            }
+        }
+        
+        function renderStudents() {
+            const tbody = document.getElementById('students-list');
+            const q = document.getElementById('filter-all').value.toLowerCase();
+            
+            const filtered = allStudents.filter(s => {
+                const searchStr = `${s.class_level}/${s.room} ${s.roll_number} ${s.username} ${s.first_name} ${s.last_name}`.toLowerCase();
+                return searchStr.includes(q);
+            });
+            
+            document.getElementById('students-list').innerHTML = filtered.map(s => `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 1rem;"><input type="checkbox" class="student-cb" value="${s.id}"></td>
+                    <td style="padding: 1rem;">${s.class_level}/${s.room}</td>
+                    <td style="padding: 1rem;">${s.roll_number}</td>
+                    <td style="padding: 1rem;">${s.username}</td>
+                    <td style="padding: 1rem;">${s.first_name} ${s.last_name}</td>
+                    <td style="padding: 1rem;">
+                        <button onclick="resetPassword(${s.id})" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;">รีเซ็ตรหัส</button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            document.getElementById('select-all-students').checked = false;
+        }
+
+        function toggleSelectAllStudents() {
+            const isChecked = document.getElementById('select-all-students').checked;
+            document.querySelectorAll('.student-cb').forEach(cb => cb.checked = isChecked);
+        }
+        
+        async function deleteSelectedStudents() {
+            const checkboxes = document.querySelectorAll('.student-cb:checked');
+            const ids = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (ids.length === 0) {
+                showAlert('กรุณาเลือกนักเรียนที่ต้องการลบ');
+                return;
+            }
+            
+            if (confirm(`คุณต้องการลบนักเรียนที่เลือกจำนวน ${ids.length} คน ใช่หรือไม่?\n(ข้อมูลการสอบและคะแนนทั้งหมดของนักเรียนจะถูกลบด้วย)`)) {
+                const res = await adminApiCall('admin.php', { action: 'delete_students', ids: ids.join(',') });
+                if (res.success) {
+                    showAlert(res.message, 'success');
+                    loadStudents();
+                } else {
+                    showAlert(res.message);
+                }
+            }
+        }
+        
+        async function loadQuestions() {
+            const res = await adminApiCall('krum.php?action=list_questions');
+            if (res.success) {
+                document.getElementById('questions-list').innerHTML = res.questions.map(q => `
+                    <tr>
+                        <td>${q.topic || 'ทั่วไป'}</td>
+                        <td>${q.question_text}</td>
+                        <td>${q.points}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function loadExams() {
+            const res = await adminApiCall('krum.php?action=list_exams');
+            if (res.success) {
+                document.getElementById('exams-list').innerHTML = res.exams.map(e => `
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td>${e.title}</td>
+                        <td>${e.target_class_level ? `${e.target_class_level}/${e.target_room}` : 'ทั้งหมด'}</td>
+                        <td>${e.is_active == 1 ? '<span style="color:var(--success)">เปิด</span>' : '<span style="color:var(--text-secondary)">ปิด</span>'}</td>
+                        <td>
+                            <button onclick="toggleExam(${e.id}, ${e.is_active == 1 ? 0 : 1})" class="btn ${e.is_active == 1 ? 'btn-danger' : 'btn-success'}" style="padding:0.25rem 0.5rem; font-size:0.8rem; margin-right:0.5rem; width:auto;">
+                                ${e.is_active == 1 ? 'ปิดสอบ' : 'เปิดสอบ'}
+                            </button>
+                            <button onclick="deleteExam(${e.id})" class="btn btn-danger" style="padding:0.25rem 0.5rem; font-size:0.8rem; width:auto;">ลบ</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                // Populate Export Select
+                const exportSelect = document.getElementById('export-exam-select');
+                let options = '<option value="">-- เลือกการสอบ --</option>';
+                res.exams.forEach(e => {
+                    options += `<option value="${e.id}">${e.title} (${e.topic || 'ไม่มีเรื่อง'})</option>`;
+                });
+                exportSelect.innerHTML = options;
+            }
+        }
+
+        async function toggleExam(id, isActive) {
+            const res = await adminApiCall('krum.php', { action: 'toggle_exam', exam_id: id, is_active: isActive });
+            if(res.success) {
+                loadExams();
+            } else {
+                showAlert('เกิดข้อผิดพลาด');
+            }
+        }
+
+        async function deleteExam(id) {
+            if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบการสอบนี้? (คะแนนสอบของนักเรียนในการสอบนี้จะถูกลบไปด้วย)')) {
+                const res = await adminApiCall('krum.php', { action: 'delete_exam', exam_id: id });
+                if (res.success) {
+                    showAlert(res.message, 'success');
+                    loadExams();
+                } else {
+                    showAlert(res.message);
+                }
+            }
+        }
+        
+        async function loadScoreStructures() {
+            // Keep stub to avoid errors
+        }
+        
+        document.getElementById('import-csv-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            fd.append('action', 'import_students');
+            showAlert('กำลังนำเข้าข้อมูลนักเรียน...', 'success');
+            const res = await adminApiCall('admin.php', fd);
+            if(res.success) { showAlert(res.message, 'success'); e.target.reset(); loadStudents(); } 
+            else showAlert(res.message);
+        });
+
+        document.getElementById('import-questions-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            fd.append('action', 'import_questions');
+            showAlert('กำลังนำเข้าข้อสอบ...', 'success');
+            const res = await adminApiCall('krum.php', fd);
+            if(res.success) { showAlert(res.message, 'success'); e.target.reset(); loadQuestions(); } 
+            else showAlert(res.message);
+        });
+
+        document.getElementById('add-question-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            fd.append('action', 'add_question');
+            const res = await adminApiCall('krum.php', fd);
+            if(res.success) { showAlert(res.message, 'success'); e.target.reset(); loadQuestions(); } 
+            else showAlert(res.message);
+        });
+
+        document.getElementById('create-exam-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            fd.append('action', 'create_exam');
+            const res = await adminApiCall('krum.php', fd);
+            if(res.success) { 
+                showAlert(res.message, 'success'); 
+                e.target.reset(); 
+                loadExams(); 
+            } 
+            else showAlert(res.message);
+        });
+
+        // --- EXPORT LOGIC ---
+        document.getElementById('export-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const examId = document.getElementById('export-exam-select').value;
+            const room = document.getElementById('export-room-select').value;
+            const format = document.getElementById('export-format').value;
+            
+            if (!examId) {
+                showAlert('กรุณาเลือกการสอบ');
+                return;
+            }
+            
+            // XLSX format
+            showAlert('กำลังสร้างไฟล์ Excel...', 'success');
+            const res = await adminApiCall(`krum.php?action=export_scores_json&exam_id=${examId}&room=${encodeURIComponent(room)}`);
+            if (res.success) {
+                if (res.data.length === 0) {
+                    showAlert('ไม่พบข้อมูลคะแนนสำหรับการสอบและห้องนี้');
+                    return;
+                }
+                const ws = XLSX.utils.json_to_sheet(res.data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Scores");
+                
+                const filename = `คะแนน_${res.exam_title}${room !== 'all' ? `_${room.replace('/', '-')}` : ''}.xlsx`;
+                XLSX.writeFile(wb, filename);
+            } else {
+                showAlert('เกิดข้อผิดพลาดในการดึงข้อมูล');
+            }
+        });
+
+        async function logout() { await adminApiCall('auth.php', { action: 'logout' }); window.location.href = '../index.html'; }
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

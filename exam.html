@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทำข้อสอบ - Quiz System</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .submit-btn-container { text-align: center; margin-top: 2rem; }
+    </style>
+</head>
+<body>
+    <main style="max-width: 800px; margin: 0 auto; width: 100%;">
+        
+        <div id="timer-container">
+            <div id="timer" class="timer-box">00:00:00</div>
+        </div>
+        
+        <div id="alert-container"></div>
+        
+        <form id="exam-form">
+            <div id="questions-container">
+                <div style="text-align:center; padding: 3rem;"><p>กำลังโหลดข้อสอบ...</p></div>
+            </div>
+            
+            <div class="submit-btn-container" id="submit-container" style="display: none;">
+                <button type="submit" class="btn btn-primary" style="width: auto; padding: 1rem 3rem; font-size: 1.1rem;">ส่งข้อสอบ</button>
+            </div>
+        </form>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const attemptId = urlParams.get('attempt_id');
+        const timeLimit = parseInt(urlParams.get('time') || '30'); // minutes
+        
+        let endTime;
+        let timerInterval;
+
+        async function initExam() {
+            if (!attemptId) {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+            
+            // In a real app, endTime should be fetched from backend based on start_time
+            // For now, we set it locally based on timeLimit
+            endTime = new Date(new Date().getTime() + timeLimit * 60000);
+            
+            startTimer();
+            await loadQuestions();
+        }
+        
+        function startTimer() {
+            const timerEl = document.getElementById('timer');
+            
+            timerInterval = setInterval(() => {
+                const now = new Date();
+                const diff = endTime - now;
+                
+                if (diff <= 0) {
+                    clearInterval(timerInterval);
+                    timerEl.textContent = "00:00:00";
+                    timerEl.classList.add('warning');
+                    alert("หมดเวลาทำข้อสอบ! ระบบจะส่งคำตอบโดยอัตโนมัติ");
+                    submitExam();
+                    return;
+                }
+                
+                // If less than 5 minutes
+                if (diff <= 5 * 60000) {
+                    timerEl.classList.add('warning');
+                }
+                
+                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                timerEl.textContent = 
+                    (h > 0 ? h.toString().padStart(2, '0') + ':' : '') + 
+                    m.toString().padStart(2, '0') + ':' + 
+                    s.toString().padStart(2, '0');
+                    
+            }, 1000);
+        }
+        
+        async function loadQuestions() {
+            const res = await apiCall(`exam.php?action=get_questions&attempt_id=${attemptId}`);
+            const container = document.getElementById('questions-container');
+            
+            if (res.success) {
+                if (res.questions.length === 0) {
+                    container.innerHTML = '<p class="text-center">ไม่พบข้อสอบ กรุณาติดต่อครูผู้สอน</p>';
+                    return;
+                }
+                
+                let html = '';
+                res.questions.forEach((q, index) => {
+                    html += `
+                        <div class="glass-card question-card">
+                            <div class="question-text">
+                                <strong>ข้อที่ ${index + 1}.</strong> ${q.question_text} 
+                                <span style="font-size:0.9rem; color:var(--text-secondary);">(${q.points} คะแนน)</span>
+                            </div>
+                            <ul class="options-list">
+                    `;
+                    
+                    const optionKeys = ['A', 'B', 'C', 'D', 'E'];
+                    optionKeys.forEach(opt => {
+                        if (q.options[opt]) {
+                            html += `
+                                <li class="option-item">
+                                    <label class="option-label">
+                                        <input type="radio" name="q_${q.id}" value="${opt}" class="option-input">
+                                        <span class="option-text">${opt}. ${q.options[opt]}</span>
+                                    </label>
+                                </li>
+                            `;
+                        }
+                    });
+                    
+                    html += `</ul></div>`;
+                });
+                
+                container.innerHTML = html;
+                document.getElementById('submit-container').style.display = 'block';
+            } else {
+                container.innerHTML = `<div class="alert error">${res.message}</div>`;
+            }
+        }
+        
+        async function submitExam() {
+            clearInterval(timerInterval);
+            
+            // Gather answers
+            const formData = new FormData(document.getElementById('exam-form'));
+            const answers = [];
+            
+            for (let [key, value] of formData.entries()) {
+                if (key.startsWith('q_')) {
+                    const qId = key.split('_')[1];
+                    answers.push({ id: qId, answer: value });
+                }
+            }
+            
+            const submitData = {
+                action: 'submit_exam',
+                attempt_id: attemptId,
+                answers: JSON.stringify(answers)
+            };
+            
+            const res = await apiCall('submit.php', submitData);
+            
+            if (res.success) {
+                document.getElementById('questions-container').innerHTML = `
+                    <div class="glass-card" style="text-align: center; padding: 3rem;">
+                        <h2 style="color: var(--success); margin-bottom: 1rem;">ส่งข้อสอบเรียบร้อยแล้ว!</h2>
+                        <p style="font-size: 1.2rem; margin-bottom: 2rem;">คะแนนดิบที่ได้: <strong style="color: var(--accent-blue); font-size: 1.5rem;">${res.raw_score}</strong> / ${res.target_score}</p>
+                        <a href="dashboard.html" class="btn btn-primary" style="width: auto;">กลับสู่หน้าหลัก</a>
+                    </div>
+                `;
+                document.getElementById('submit-container').style.display = 'none';
+                document.getElementById('timer-container').style.display = 'none';
+            } else {
+                showAlert(res.message);
+            }
+        }
+        
+        document.getElementById('exam-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if(confirm('คุณแน่ใจหรือไม่ว่าต้องการส่งข้อสอบ?')) {
+                submitExam();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', initExam);
+    </script>
+</body>
+</html>

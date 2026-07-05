@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สรุปคะแนน - Quiz System</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <main style="max-width: 800px; margin: 0 auto; width: 100%;">
+        <div class="dashboard-header">
+            <div>
+                <h2 style="color: var(--accent-cyan);" id="student-name">กำลังโหลด...</h2>
+                <p style="color: var(--text-secondary);" id="student-info"></p>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="change_password.html" class="btn" style="background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); width: auto; text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; display: inline-block; text-align: center;">เปลี่ยนรหัสผ่าน</a>
+                <button onclick="logout()" class="btn btn-secondary" style="width: auto;">ออกจากระบบ</button>
+            </div>
+        </div>
+
+        <div id="alert-container"></div>
+        
+        <div id="exams-section" style="margin-bottom: 2rem;">
+            <h3 style="margin-bottom: 1rem; color: var(--accent-pink);">สอบออนไลน์ (Active Exams)</h3>
+            <div id="active-exams-list">
+                <!-- Exams will be loaded here -->
+            </div>
+        </div>
+
+        <div id="scores-section">
+            <h3 style="margin-bottom: 1rem;">ประวัติการสอบ (Exam History)</h3>
+            <div id="exam-history-container">
+                <!-- Scores will be loaded here -->
+                <p style="color:var(--text-secondary); text-align:center; padding: 2rem;">กำลังโหลดข้อมูล...</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        async function loadProfile() {
+            const res = await apiCall('auth.php', { action: 'me' });
+            if (!res.authenticated || res.user.role !== 'student') {
+                window.location.href = 'index.html';
+                return;
+            }
+            if (res.user.is_first_login) {
+                window.location.href = 'change_password.html';
+                return;
+            }
+            
+            document.getElementById('student-name').textContent = `${res.user.first_name} ${res.user.last_name}`;
+            document.getElementById('student-info').textContent = `ม.${res.user.class_level}/${res.user.room} เลขที่ ${res.user.roll_number} | รหัส: ${res.user.username}`;
+            
+            loadExams();
+            loadDashboard();
+        }
+        
+        async function loadExams() {
+            const res = await apiCall('exam.php?action=list_active');
+            const container = document.getElementById('active-exams-list');
+            
+            if (res.success && res.exams.length > 0) {
+                container.innerHTML = res.exams.map(ex => `
+                    <div class="glass-card" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; padding: 1.5rem;">
+                        <div>
+                            <h4>${ex.title}</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">${ex.subject_name} | เวลา: ${ex.time_limit_minutes} นาที</p>
+                        </div>
+                        <div>
+                            ${ex.can_take 
+                                ? `<button onclick="startExam(${ex.id})" class="btn btn-primary" style="width: auto;">${ex.status === 'in_progress' ? 'ทำข้อสอบต่อ' : 'เข้าสอบ'}</button>`
+                                : `<span style="color: var(--text-secondary);">สอบแล้ว</span>`
+                            }
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p style="color: var(--text-secondary);">ไม่มีรายการสอบในขณะนี้</p>';
+            }
+        }
+        
+        async function loadDashboard() {
+            const res = await apiCall('student.php?action=dashboard');
+            if (res.success) {
+                const container = document.getElementById('exam-history-container');
+                if (res.history.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-secondary); text-align:center; padding: 2rem;">ยังไม่มีประวัติการทำข้อสอบ</p>';
+                    return;
+                }
+                
+                let html = `
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--border-color);">
+                                    <th style="padding: 1rem;">ชื่อการสอบ</th>
+                                    <th style="padding: 1rem;">เรื่อง (Topic)</th>
+                                    <th style="padding: 1rem; text-align: center;">คะแนนที่ได้</th>
+                                    <th style="padding: 1rem; text-align: center;">คะแนนเต็ม</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                res.history.forEach(item => {
+                    html += `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 1rem;">${item.title}</td>
+                            <td style="padding: 1rem;">${item.topic || '-'}</td>
+                            <td style="padding: 1rem; text-align: center; font-weight: bold; color: var(--accent-blue);">${item.raw_score}</td>
+                            <td style="padding: 1rem; text-align: center; color: var(--text-secondary);">${item.target_raw_score}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `</tbody></table></div>`;
+                container.innerHTML = html;
+            }
+        }
+        
+        async function startExam(examId) {
+            const res = await apiCall('exam.php', { action: 'start', exam_id: examId });
+            if (res.success) {
+                window.location.href = `exam.html?attempt_id=${res.attempt_id}&time=${res.time_limit_minutes}`;
+            } else {
+                showAlert(res.message);
+            }
+        }
+        
+        async function logout() {
+            await apiCall('auth.php', { action: 'logout' });
+            window.location.href = 'index.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadProfile);
+    </script>
+</body>
+</html>
