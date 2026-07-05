@@ -14,6 +14,7 @@ $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 if ($action === 'add_question') {
     $subject_id = $_POST['subject_id'] ?? 1; // Default to subject 1
+    $unit = trim($_POST['unit'] ?? 'ทั่วไป');
     $topic = trim($_POST['topic'] ?? 'ทั่วไป');
     $points = (int)($_POST['points'] ?? 1);
     $text = trim($_POST['question_text'] ?? '');
@@ -29,8 +30,8 @@ if ($action === 'add_question') {
         exit;
     }
 
-    $stmt = $pdo->prepare("INSERT INTO questions (subject_id, topic, question_text, option_a, option_b, option_c, option_d, option_e, correct_option, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$subject_id, $topic, $text, $optA, $optB, $optC, $optD, $optE, $correct, $points]);
+    $stmt = $pdo->prepare("INSERT INTO questions (subject_id, unit, topic, question_text, option_a, option_b, option_c, option_d, option_e, correct_option, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$subject_id, $unit, $topic, $text, $optA, $optB, $optC, $optD, $optE, $correct, $points]);
     
     echo json_encode(['success' => true, 'message' => 'เพิ่มข้อสอบสำเร็จ']);
 
@@ -48,26 +49,28 @@ if ($action === 'add_question') {
         
         $pdo->beginTransaction();
         try {
-            $stmt = $pdo->prepare("INSERT INTO questions (subject_id, topic, question_text, option_a, option_b, option_c, option_d, option_e, correct_option, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO questions (subject_id, unit, topic, question_text, option_a, option_b, option_c, option_d, option_e, correct_option, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
             $count = 0;
             while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
                 // Ensure we have enough columns (at least up to Correct Option)
-                if (count($data) >= 9) {
-                    $topic = trim($data[0] ?: 'ทั่วไป');
-                    $points = (int)($data[1] ?: 1);
-                    $text = trim($data[2]);
-                    $optA = trim($data[3]);
-                    $optB = trim($data[4]);
-                    $optC = trim($data[5]);
-                    $optD = trim($data[6]);
-                    $optE = trim($data[7]);
-                    $correct = trim(strtoupper($data[8]));
+                if (count($data) >= 10) {
+                    $unit = trim($data[0] ?: 'ทั่วไป');
+                    $topic = trim($data[1] ?: 'ทั่วไป');
+                    $points = (int)($data[2] ?: 1);
+                    $text = trim($data[3]);
+                    $optA = trim($data[4]);
+                    $optB = trim($data[5]);
+                    $optC = trim($data[6]);
+                    $optD = trim($data[7]);
+                    $optE = trim($data[8] ?? '');
+                    $correct = strtoupper(trim($data[9]));
                     
-                    if (!empty($text) && !empty($optA)) {
-                        $stmt->execute([1, $topic, $text, $optA, $optB, $optC, $optD, $optE, $correct, $points]);
-                        $count++;
-                    }
+                    // Basic validation
+                    if (empty($text) || empty($optA) || empty($correct)) continue;
+                    
+                    $stmt->execute([1, $unit, $topic, $text, $optA, $optB, $optC, $optD, $optE, $correct, $points]);
+                    $count++;
                 }
             }
             $pdo->commit();

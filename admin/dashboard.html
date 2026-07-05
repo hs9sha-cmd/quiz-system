@@ -81,7 +81,7 @@
             <div class="glass-card" style="margin-bottom: 2rem;">
                 <h3>นำเข้าข้อสอบ (Import CSV)</h3>
                 <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
-                    คอลัมน์ A-I: บท/เรื่อง, คะแนน(1/2), โจทย์, ก, ข, ค, ง, จ, เฉลย(A-E)
+                    คอลัมน์ A-J: หัวข้อหลัก(Unit), เรื่อง(Topic), คะแนน(1/2), โจทย์, ก, ข, ค, ง, จ, เฉลย(A-E)
                     <a href="template_questions.csv" download style="color: var(--accent-blue); text-decoration: none; margin-left: 10px;">[ ดาวน์โหลดไฟล์ต้นแบบ ]</a>
                 </p>
                 <form id="import-questions-form" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
@@ -95,8 +95,12 @@
             <div class="glass-card" style="margin-bottom: 2rem;">
                 <h3>เพิ่มข้อสอบใหม่ (ทีละข้อ)</h3>
                 <form id="add-question-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>หัวข้อหลัก (Unit)</label>
+                        <input type="text" name="unit" placeholder="เช่น บทที่ 1" required>
+                    </div>
                     <div class="form-group">
-                        <label>เรื่อง / หมวดหมู่ (Topic)</label>
+                        <label>เรื่องย่อย / หมวดหมู่ (Topic)</label>
                         <input type="text" name="topic" placeholder="เช่น ของแข็งและของไหล" required>
                     </div>
                     <div class="form-group">
@@ -141,7 +145,8 @@
                         <thead>
                             <tr>
                                 <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-questions" onclick="toggleAllQuestions(this)"></th>
-                                <th>เรื่อง</th>
+                                <th>หัวข้อหลัก (Unit)</th>
+                                <th>เรื่อง (Topic)</th>
                                 <th>โจทย์</th>
                                 <th>คะแนน</th>
                             </tr>
@@ -438,6 +443,7 @@
                 document.getElementById('questions-list').innerHTML = res.questions.map(q => `
                     <tr style="border-bottom: 1px solid var(--border-color);">
                         <td style="text-align: center;"><input type="checkbox" class="question-cb" value="${q.id}" onclick="updateDeleteQuestionBtn()"></td>
+                        <td>${q.unit || 'ทั่วไป'}</td>
                         <td>${q.topic || 'ทั่วไป'}</td>
                         <td>${q.question_text}</td>
                         <td>${q.points}</td>

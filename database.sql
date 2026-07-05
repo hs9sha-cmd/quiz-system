@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS score_structures (
 CREATE TABLE IF NOT EXISTS questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     subject_id INT NOT NULL,
+    unit VARCHAR(255) NOT NULL DEFAULT 'ทั่วไป',
     topic VARCHAR(255) NOT NULL DEFAULT 'ทั่วไป',
     question_text TEXT NOT NULL,
     option_a TEXT NOT NULL,
