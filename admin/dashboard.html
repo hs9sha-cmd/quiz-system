@@ -569,7 +569,7 @@
                 const exportSelect = document.getElementById('export-exam-select');
                 let options = '<option value="">-- เลือกการสอบ --</option>';
                 res.exams.forEach(e => {
-                    options += `<option value="${e.id}">${e.title} (${e.topic || 'ไม่มีเรื่อง'})</option>`;
+                    options += `<option value="${e.id}">${e.title}</option>`;
                 });
                 exportSelect.innerHTML = options;
             }
