@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS score_structures (
 CREATE TABLE IF NOT EXISTS questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     subject_id INT NOT NULL,
+    topic VARCHAR(255) NOT NULL DEFAULT 'ทั่วไป',
     question_text TEXT NOT NULL,
     option_a TEXT NOT NULL,
     option_b TEXT NOT NULL,
@@ -57,6 +58,9 @@ CREATE TABLE IF NOT EXISTS exams (
     subject_id INT NOT NULL,
     score_structure_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
+    topic VARCHAR(255) NOT NULL DEFAULT 'ทั่วไป',
+    target_class_level VARCHAR(50) DEFAULT 'all',
+    target_room VARCHAR(50) DEFAULT 'all',
     target_raw_score INT NOT NULL, -- The target sum of points for the exam
     time_limit_minutes INT NOT NULL, -- 30, 45, 60, 90
     is_active BOOLEAN DEFAULT TRUE,
