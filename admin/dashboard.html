@@ -298,6 +298,8 @@
         }
 
         window.blueprintHierarchy = {};
+        window.schoolRooms = [];
+        window.allExams = [];
         
         async function loadFormOptions() {
             const res = await adminApiCall('krum.php?action=get_form_options');
@@ -309,6 +311,8 @@
                 if(document.getElementById('blueprint-container').children.length === 0) {
                     addBlueprintUnit();
                 }
+
+                window.schoolRooms = res.rooms;
 
                 // Populate Rooms
                 const roomSelect = document.getElementById('room-select');
@@ -326,7 +330,7 @@
                 roomSelect.innerHTML = roomHtml;
                 
                 const exportRoomSelect = document.getElementById('export-room-select');
-                exportRoomSelect.innerHTML = roomHtml;
+                exportRoomSelect.innerHTML = '<option value="all">-- ทุกห้อง --</option>';
             }
         }
         
@@ -554,6 +558,7 @@
         async function loadExams() {
             const res = await adminApiCall('krum.php?action=list_exams');
             if (res.success) {
+                window.allExams = res.exams;
                 document.getElementById('exams-list').innerHTML = res.exams.map(e => `
                     <tr style="border-bottom: 1px solid var(--border-color);">
                         <td>${e.title}</td>
@@ -575,7 +580,53 @@
                     options += `<option value="${e.id}">${e.title}</option>`;
                 });
                 exportSelect.innerHTML = options;
+                
+                // Ensure room options are up to date with currently selected exam
+                updateExportRoomOptions();
             }
+        }
+        
+        document.getElementById('export-exam-select').addEventListener('change', updateExportRoomOptions);
+        
+        function updateExportRoomOptions() {
+            const examId = document.getElementById('export-exam-select').value;
+            const exportRoomSelect = document.getElementById('export-room-select');
+            
+            if (!examId) {
+                exportRoomSelect.innerHTML = '<option value="all">-- ทุกห้อง --</option>';
+                return;
+            }
+            
+            const exam = window.allExams.find(e => e.id == examId);
+            if (!exam) return;
+            
+            let roomHtml = '';
+            
+            if (!exam.target_class_level && !exam.target_room) {
+                // For everyone
+                roomHtml = '<option value="all">-- ทุกห้อง --</option>';
+                let currentClassLevel = '';
+                window.schoolRooms.forEach(r => {
+                    if (currentClassLevel !== r.class_level) {
+                        currentClassLevel = r.class_level;
+                        roomHtml += `<option value="${r.class_level}/all" style="font-weight: bold; background: #e2e8f0; color: #000;">-- ทุกห้องใน ${r.class_level} --</option>`;
+                    }
+                    roomHtml += `<option value="${r.class_level}/${r.room}">&nbsp;&nbsp;&nbsp;&nbsp;${r.class_level}/${r.room}</option>`;
+                });
+            } else if (exam.target_class_level && !exam.target_room) {
+                // For specific class level
+                roomHtml = `<option value="${exam.target_class_level}/all" style="font-weight: bold; background: #e2e8f0; color: #000;">-- ทุกห้องใน ${exam.target_class_level} --</option>`;
+                window.schoolRooms.forEach(r => {
+                    if (r.class_level === exam.target_class_level) {
+                        roomHtml += `<option value="${r.class_level}/${r.room}">&nbsp;&nbsp;&nbsp;&nbsp;${r.class_level}/${r.room}</option>`;
+                    }
+                });
+            } else {
+                // For specific room
+                roomHtml = `<option value="${exam.target_class_level}/${exam.target_room}">-- ห้อง ${exam.target_class_level}/${exam.target_room} --</option>`;
+            }
+            
+            exportRoomSelect.innerHTML = roomHtml;
         }
 
         async function toggleExam(id, isActive) {
