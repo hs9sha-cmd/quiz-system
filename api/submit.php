@@ -63,6 +63,54 @@ if ($action === 'submit_exam') {
     // Clear session mapping
     unset($_SESSION['exam_mapping'][$attempt_id]);
     
+    // --- Google Sheets Auto-Sync Webhook ---
+    try {
+        // Fetch Exam, Score Structure, Subject, and Student details
+        $syncStmt = $pdo->prepare("
+            SELECT e.subject_id, e.score_structure_id, 
+                   e.target_raw_score as max_raw_score, e.target_net_score as max_net_score, e.google_sheet_column,
+                   s.webhook_url,
+                   u.username AS student_id
+            FROM exams e
+            JOIN subjects s ON e.subject_id = s.id
+            JOIN users u ON u.id = ?
+            WHERE e.id = ?
+        ");
+        $syncStmt->execute([$student_id, $attempt['exam_id']]);
+        $syncData = $syncStmt->fetch();
+
+        if ($syncData && !empty($syncData['webhook_url']) && !empty($syncData['google_sheet_column'])) {
+            $max_raw = (float)$syncData['max_raw_score'];
+            $max_net = (float)$syncData['max_net_score'];
+            
+            // Calculate scaled score
+            $scaled_score = 0;
+            if ($max_raw > 0) {
+                $scaled_score = round(($total_raw_score / $max_raw) * $max_net, 2);
+            }
+            
+            $payload = json_encode([
+                'student_id' => $syncData['student_id'],
+                'column_name' => $syncData['google_sheet_column'],
+                'score' => $scaled_score
+            ]);
+            
+            // Fire-and-forget cURL
+            $ch = curl_init($syncData['webhook_url']);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 2); // 2 seconds timeout to prevent freezing the UI
+            curl_exec($ch);
+            curl_close($ch);
+        }
+    } catch (Exception $e) {
+        // Silently ignore webhook errors so the student still sees their score
+    }
+    // ----------------------------------------
+
+    
     echo json_encode([
         'success' => true,
         'message' => 'Exam submitted successfully',

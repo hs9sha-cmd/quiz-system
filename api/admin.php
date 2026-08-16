@@ -131,6 +131,32 @@ if ($action === 'list_students') {
         $pdo->rollBack();
         echo json_encode(['success' => false, 'message' => 'Error deleting students: ' . $e->getMessage()]);
     }
+} elseif ($action === 'edit_student') {
+    $student_id = (int)($_POST['id'] ?? 0);
+    $username = trim($_POST['username'] ?? '');
+    $first_name = trim($_POST['first_name'] ?? '');
+    $last_name = trim($_POST['last_name'] ?? '');
+    $class_level = trim($_POST['class_level'] ?? '');
+    $room = trim($_POST['room'] ?? '');
+    $roll_number = trim($_POST['roll_number'] ?? '');
+    
+    if (empty($student_id) || empty($username) || empty($first_name)) {
+        echo json_encode(['success' => false, 'message' => 'ข้อมูลไม่ครบถ้วน']);
+        exit;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("UPDATE users SET username = ?, first_name = ?, last_name = ?, class_level = ?, room = ?, roll_number = ? WHERE id = ? AND role = 'student'");
+        $stmt->execute([$username, $first_name, $last_name, $class_level, $room, $roll_number, $student_id]);
+        echo json_encode(['success' => true, 'message' => 'แก้ไขข้อมูลนักเรียนสำเร็จ']);
+    } catch (PDOException $e) {
+        // Handle duplicate username (student code)
+        if ($e->getCode() == 23000) {
+            echo json_encode(['success' => false, 'message' => 'รหัสนักเรียนนี้ซ้ำกับในระบบครับ']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()]);
+        }
+    }
 } else {
     echo json_encode(['success' => false, 'message' => 'Invalid action']);
 }

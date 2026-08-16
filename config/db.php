@@ -2,7 +2,7 @@
 // config/db.php
 
 $host = '127.0.0.1';
-$db   = 'quiz_system';
+$db   = 'quiz_dev';
 $user = 'root';
 $pass = ''; // Default XAMPP password is empty
 $charset = 'utf8mb4';

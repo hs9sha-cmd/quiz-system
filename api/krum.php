@@ -134,10 +134,13 @@ if ($action === 'add_question') {
     
     $is_active = isset($_POST['is_active']) ? 1 : 0;
 
-    $stmt = $pdo->prepare("INSERT INTO exams (subject_id, score_structure_id, topic, title, target_raw_score, time_limit_minutes, target_class_level, target_room, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$subject_id, $score_structure_id, $topic, $title, $target_raw_score, $time_limit, $target_class_level, $target_room, $is_active]);
-    
-    echo json_encode(['success' => true, 'message' => 'เปิดการสอบสำเร็จ']);
+    try {
+        $stmt = $pdo->prepare("INSERT INTO exams (subject_id, score_structure_id, topic, title, target_raw_score, time_limit_minutes, target_class_level, target_room, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$subject_id, $score_structure_id, $topic, $title, $target_raw_score, $time_limit, $target_class_level, $target_room, $is_active]);
+        echo json_encode(['success' => true, 'message' => 'เปิดการสอบสำเร็จ']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Database Error: ' . $e->getMessage()]);
+    }
 
 } elseif ($action === 'list_exams') {
     $stmt = $pdo->query("SELECT e.*, s.title as slot_name FROM exams e JOIN score_structures s ON e.score_structure_id = s.id ORDER BY e.id DESC");

@@ -59,12 +59,14 @@ CREATE TABLE IF NOT EXISTS exams (
     subject_id INT NOT NULL,
     score_structure_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
-    topic VARCHAR(255) NOT NULL DEFAULT 'ทั่วไป',
+    topic TEXT NOT NULL,
     target_class_level VARCHAR(50) DEFAULT 'all',
     target_room VARCHAR(50) DEFAULT 'all',
     target_raw_score INT NOT NULL, -- The target sum of points for the exam
     time_limit_minutes INT NOT NULL, -- 30, 45, 60, 90
     is_active BOOLEAN DEFAULT TRUE,
+    google_sheet_column VARCHAR(100) DEFAULT NULL, -- Column name like "คะแนนย่อย 1"
+    target_net_score DECIMAL(5,2) DEFAULT NULL, -- Target percent/score to send to Google Sheets
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
     FOREIGN KEY (score_structure_id) REFERENCES score_structures(id) ON DELETE CASCADE

@@ -22,7 +22,10 @@
                 <h2 style="color: var(--text-primary); font-size: 2rem;">Tech with M</h2>
                 <p style="color: var(--text-secondary);">จัดการข้อมูลและข้อสอบ</p>
             </div>
-            <button onclick="logout()" class="btn btn-secondary" style="width: auto;">ออกจากระบบ</button>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <a href="../chkpoint/admin.php" class="btn btn-primary" style="background: var(--accent-blue); border: none; width: auto; text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.9rem;">⚙️ ตั้งค่าศูนย์ซิงค์คะแนน</a>
+                <button onclick="logout()" class="btn btn-secondary" style="width: auto;">ออกจากระบบ</button>
+            </div>
         </div>
 
         <div id="alert-container"></div>
@@ -248,6 +251,45 @@
                 <div id="scores-table-container" style="margin-top: 2rem;"></div>
             </div>
         </div>
+        <!-- Edit Student Modal -->
+        <div id="edit-student-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+            <div class="glass-card" style="background: white; width: 100%; max-width: 500px; padding: 2rem; position: relative;">
+                <button type="button" onclick="closeEditStudentModal()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+                <h3 style="margin-bottom: 1.5rem;">แก้ไขข้อมูลนักเรียน</h3>
+                <form id="edit-student-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <input type="hidden" name="id" id="edit-student-id">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>รหัสนักเรียน</label>
+                        <input type="text" name="username" id="edit-student-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label>ชื่อ</label>
+                        <input type="text" name="first_name" id="edit-student-firstname" required>
+                    </div>
+                    <div class="form-group">
+                        <label>นามสกุล</label>
+                        <input type="text" name="last_name" id="edit-student-lastname">
+                    </div>
+                    <div class="form-group">
+                        <label>ระดับชั้น (เช่น ม.4)</label>
+                        <input type="text" name="class_level" id="edit-student-classlevel">
+                    </div>
+                    <div class="form-group">
+                        <label>ห้อง (เช่น 5)</label>
+                        <input type="text" name="room" id="edit-student-room">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>เลขที่</label>
+                        <input type="number" name="roll_number" id="edit-student-rollnumber">
+                    </div>
+                    <div style="grid-column: 1 / -1; margin-top: 1rem; text-align: right;">
+                        <button type="button" class="btn btn-secondary" style="width: auto; margin-right: 0.5rem;" onclick="closeEditStudentModal()">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary" style="width: auto; padding: 0.75rem 2rem;">บันทึกการแก้ไข</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </main>
 
     <script src="../js/app.js"></script>
@@ -471,6 +513,7 @@
                     <td style="padding: 1rem;">${s.username}</td>
                     <td style="padding: 1rem;">${s.first_name} ${s.last_name}</td>
                     <td style="padding: 1rem;">
+                        <button onclick="openEditStudentModal(${s.id})" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto; background: var(--accent-blue); color: white; border: none; margin-right: 0.5rem;">แก้ไข</button>
                         <button onclick="resetPassword(${s.id})" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;">รีเซ็ตรหัส</button>
                     </td>
                 </tr>
@@ -694,6 +737,40 @@
                 loadExams(); 
             } 
             else showAlert(res.message);
+        });
+
+        function openEditStudentModal(id) {
+            const student = allStudents.find(s => s.id == id);
+            if (!student) return;
+            
+            document.getElementById('edit-student-id').value = student.id;
+            document.getElementById('edit-student-username').value = student.username;
+            document.getElementById('edit-student-firstname').value = student.first_name;
+            document.getElementById('edit-student-lastname').value = student.last_name;
+            document.getElementById('edit-student-classlevel').value = student.class_level;
+            document.getElementById('edit-student-room').value = student.room;
+            document.getElementById('edit-student-rollnumber').value = student.roll_number;
+            
+            document.getElementById('edit-student-modal').style.display = 'flex';
+        }
+
+        function closeEditStudentModal() {
+            document.getElementById('edit-student-modal').style.display = 'none';
+        }
+
+        document.getElementById('edit-student-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            fd.append('action', 'edit_student');
+            
+            const res = await adminApiCall('admin.php', fd);
+            if (res.success) {
+                showAlert(res.message, 'success');
+                closeEditStudentModal();
+                loadStudents(); // Reload list
+            } else {
+                showAlert(res.message);
+            }
         });
 
         // --- EXPORT LOGIC ---
