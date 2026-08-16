@@ -97,7 +97,11 @@
             
             <div class="glass-card" style="margin-bottom: 2rem;">
                 <h3>เพิ่มข้อสอบใหม่ (ทีละข้อ)</h3>
-                <form id="add-question-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                <style>
+                    #add-question-form .form-group { margin-bottom: 0; }
+                    #add-question-form label { margin-bottom: 0.25rem; }
+                </style>
+                <form id="add-question-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1rem; margin-top: 1rem;">
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>หัวข้อหลัก (Unit)</label>
                         <input type="text" name="unit" placeholder="เช่น บทที่ 1" required>
@@ -143,6 +147,23 @@
                     <h3>คลังข้อสอบ</h3>
                     <button type="button" class="btn" style="background: var(--danger); color: white; width: auto; font-size: 0.9rem; display: none;" id="delete-questions-btn" onclick="deleteSelectedQuestions()">ลบข้อที่เลือก</button>
                 </div>
+                
+                <!-- Filter Section -->
+                <div style="display: flex; gap: 1rem; margin-top: 1rem; background: var(--bg-light); padding: 1rem; border-radius: 8px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.9rem; font-weight: 600;">กรองตามหัวข้อหลัก (Unit)</label>
+                        <select id="filter-question-unit" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" onchange="updateTopicFilterOptions(); renderQuestions();">
+                            <option value="">-- ทั้งหมด --</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.9rem; font-weight: 600;">กรองตามเรื่อง (Topic)</label>
+                        <select id="filter-question-topic" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;" onchange="renderQuestions();">
+                            <option value="">-- ทั้งหมด --</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div style="margin-top: 1rem; overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
@@ -296,6 +317,7 @@
     <script>
         const ADMIN_API_BASE = '../api/';
         let allStudents = [];
+        let allQuestionsData = [];
         let scoreStructures = [];
 
         function switchTab(tabId, el) {
@@ -322,9 +344,15 @@
             }
             try {
                 const response = await fetch(`${ADMIN_API_BASE}${endpoint}`, options);
-                return await response.json();
+                const text = await response.text();
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error("Raw response:", text);
+                    return { success: false, message: 'Server Response Error: ' + text.substring(0, 100) };
+                }
             } catch (err) {
-                return { success: false, message: 'Network error' };
+                return { success: false, message: 'Fetch error: ' + err.message };
             }
         }
         
@@ -550,18 +578,68 @@
         async function loadQuestions() {
             const res = await adminApiCall('krum.php?action=list_questions');
             if (res.success) {
-                document.getElementById('questions-list').innerHTML = res.questions.map(q => `
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="text-align: center;"><input type="checkbox" class="question-cb" value="${q.id}" onclick="updateDeleteQuestionBtn()"></td>
-                        <td>${q.unit || 'ทั่วไป'}</td>
-                        <td>${q.topic || 'ทั่วไป'}</td>
-                        <td>${q.question_text}</td>
-                        <td>${q.points}</td>
-                    </tr>
-                `).join('');
-                document.getElementById('select-all-questions').checked = false;
-                updateDeleteQuestionBtn();
+                allQuestionsData = res.questions;
+                populateQuestionFilters();
+                renderQuestions();
             }
+        }
+
+        function populateQuestionFilters() {
+            const unitSelect = document.getElementById('filter-question-unit');
+            const units = [...new Set(allQuestionsData.map(q => q.unit || 'ทั่วไป'))].sort();
+            
+            let unitHtml = '<option value="">-- ทั้งหมด --</option>';
+            units.forEach(u => {
+                unitHtml += `<option value="${u}">${u}</option>`;
+            });
+            unitSelect.innerHTML = unitHtml;
+            
+            updateTopicFilterOptions();
+        }
+
+        function updateTopicFilterOptions() {
+            const unitSelect = document.getElementById('filter-question-unit');
+            const topicSelect = document.getElementById('filter-question-topic');
+            const selectedUnit = unitSelect.value;
+            
+            let filteredQuestions = allQuestionsData;
+            if (selectedUnit) {
+                filteredQuestions = allQuestionsData.filter(q => (q.unit || 'ทั่วไป') === selectedUnit);
+            }
+            
+            const topics = [...new Set(filteredQuestions.map(q => q.topic || 'ทั่วไป'))].sort();
+            let topicHtml = '<option value="">-- ทั้งหมด --</option>';
+            topics.forEach(t => {
+                topicHtml += `<option value="${t}">${t}</option>`;
+            });
+            topicSelect.innerHTML = topicHtml;
+        }
+
+        function renderQuestions() {
+            const selectedUnit = document.getElementById('filter-question-unit').value;
+            const selectedTopic = document.getElementById('filter-question-topic').value;
+            
+            let filtered = allQuestionsData;
+            
+            if (selectedUnit) {
+                filtered = filtered.filter(q => (q.unit || 'ทั่วไป') === selectedUnit);
+            }
+            if (selectedTopic) {
+                filtered = filtered.filter(q => (q.topic || 'ทั่วไป') === selectedTopic);
+            }
+            
+            document.getElementById('questions-list').innerHTML = filtered.map(q => `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="text-align: center;"><input type="checkbox" class="question-cb" value="${q.id}" onclick="updateDeleteQuestionBtn()"></td>
+                    <td>${q.unit || 'ทั่วไป'}</td>
+                    <td>${q.topic || 'ทั่วไป'}</td>
+                    <td>${q.question_text}</td>
+                    <td>${q.points}</td>
+                </tr>
+            `).join('');
+            
+            document.getElementById('select-all-questions').checked = false;
+            updateDeleteQuestionBtn();
         }
         
         function toggleAllQuestions(source) {

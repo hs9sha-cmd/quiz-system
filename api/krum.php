@@ -42,17 +42,21 @@ if ($action === 'add_question') {
     }
 
     $file = $_FILES['csv_file']['tmp_name'];
+    
+    // จับ Warning/Notice ทั้งหมดไม่ให้พิมพ์ออกมาปนกับ JSON
+    ob_start();
+    
     $handle = fopen($file, "r");
     if ($handle !== FALSE) {
         // Skip header row
-        fgetcsv($handle, 1000, ",");
+        fgetcsv($handle, 0, ",");
         
         $pdo->beginTransaction();
         try {
             $stmt = $pdo->prepare("INSERT INTO questions (subject_id, unit, topic, question_text, option_a, option_b, option_c, option_d, option_e, correct_option, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
             $count = 0;
-            while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+            while (($data = fgetcsv($handle, 0, ",")) !== FALSE) {
                 // Ensure we have enough columns (at least up to Correct Option)
                 if (count($data) >= 10) {
                     $unit = trim($data[0] ?: 'ทั่วไป');
@@ -74,9 +78,11 @@ if ($action === 'add_question') {
                 }
             }
             $pdo->commit();
+            ob_end_clean(); // เคลียร์ขยะ (Warnings)
             echo json_encode(['success' => true, 'message' => "นำเข้าข้อสอบสำเร็จจำนวน $count ข้อ"]);
         } catch (Exception $e) {
             $pdo->rollBack();
+            ob_end_clean();
             echo json_encode(['success' => false, 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()]);
         }
         fclose($handle);
