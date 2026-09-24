@@ -278,10 +278,10 @@ if ($action === 'add_question') {
     }
     
     $query = "
-        SELECT CAST(u.roll_number AS UNSIGNED) as 'เลขที่', u.username as 'รหัสนักเรียน', 
+        SELECT u.id as _user_id, CAST(u.roll_number AS UNSIGNED) as 'เลขที่', u.username as 'รหัสนักเรียน', 
                CONCAT(u.first_name, ' ', u.last_name) as 'ชื่อ-สกุล', 
                CONCAT(u.class_level, '/', u.room) as 'ชั้น', 
-               COALESCE(CAST(MAX(ea.raw_score) AS CHAR), 'ยังไม่ได้เข้าสอบ') as 'คะแนน' 
+               COALESCE(CAST(MAX(ea.raw_score) AS CHAR), 'ยังไม่ได้เข้าสอบ') as 'คะแนนรวม' 
         FROM users u 
         LEFT JOIN exam_attempts ea ON u.id = ea.student_id AND ea.exam_id = ? AND ea.status = 'submitted'
         WHERE u.role = 'student'
@@ -318,7 +318,46 @@ if ($action === 'add_question') {
     $stmt->execute($params);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    echo json_encode(['success' => true, 'exam_title' => $exam['title'], 'data' => $results]);
+    // Fetch Topic Scores
+    $topicStmt = $pdo->prepare("
+        SELECT ea.student_id, q.topic, SUM(sa.points_earned) as topic_score
+        FROM exam_attempts ea
+        JOIN student_answers sa ON ea.id = sa.attempt_id
+        JOIN questions q ON sa.question_id = q.id
+        WHERE ea.exam_id = ? AND ea.status = 'submitted'
+        GROUP BY ea.student_id, q.topic
+    ");
+    $topicStmt->execute([$exam_id]);
+    $topicScoresData = $topicStmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $student_topics = [];
+    $all_topics = [];
+    foreach ($topicScoresData as $row) {
+        $sid = $row['student_id'];
+        $t = $row['topic'] ?: 'ทั่วไป';
+        $student_topics[$sid][$t] = $row['topic_score'];
+        $all_topics[$t] = true;
+    }
+    $all_topics = array_keys($all_topics);
+    sort($all_topics);
+    
+    // Append topics to results
+    $final_results = [];
+    foreach ($results as $row) {
+        $uid = $row['_user_id'];
+        unset($row['_user_id']); // Remove internal ID
+        
+        foreach ($all_topics as $t) {
+            if ($row['คะแนนรวม'] === 'ยังไม่ได้เข้าสอบ') {
+                $row["คะแนน $t"] = '-';
+            } else {
+                $row["คะแนน $t"] = $student_topics[$uid][$t] ?? 0;
+            }
+        }
+        $final_results[] = $row;
+    }
+    
+    echo json_encode(['success' => true, 'exam_title' => $exam['title'], 'data' => $final_results]);
 
 } elseif ($action === 'reset_password') {
     $student_id = (int)$_POST['student_id'];
