@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           # Path to deploy to on the FTP server (e.g., public_html/ or /)
-          server-dir: public_html/
+          server-dir: /
           # Exclude git files and database config to prevent overwriting production credentials
           exclude: |
             **/.git*
