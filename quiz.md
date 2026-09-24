@@ -1,7 +1,7 @@
-# Tech with M - ระบบสอบออนไลน์ (Quiz System)
+# Tech With Kru.M - ระบบสอบออนไลน์ (Quiz System)
 
 ## 📌 ข้อมูลโปรเจกต์ (Project Overview)
-- **ชื่อระบบ:** Tech with M (HS9SHA - Wednesday By M&M Service)
+- **ชื่อระบบ:** Tech With Kru.M (HS9SHA - Wednesday By M&M Service)
 - **ผู้ดูแล/พัฒนา:** ครูเอ็ม & AI Wednesday
 - **สภาพแวดล้อมการทำงาน (Environment):**
   - **Local Development:** Laravel Herd บน macOS (ย้ายระบบมาจาก XAMPP เพื่อประสิทธิภาพที่ดีขึ้น)
