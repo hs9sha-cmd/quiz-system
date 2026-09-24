@@ -347,13 +347,19 @@ if ($action === 'add_question') {
         $uid = $row['_user_id'];
         unset($row['_user_id']); // Remove internal ID
         
+        $total_score = $row['คะแนนรวม'];
+        unset($row['คะแนนรวม']);
+        
         foreach ($all_topics as $t) {
-            if ($row['คะแนนรวม'] === 'ยังไม่ได้เข้าสอบ') {
+            if ($total_score === 'ยังไม่ได้เข้าสอบ') {
                 $row["คะแนน $t"] = '-';
             } else {
                 $row["คะแนน $t"] = $student_topics[$uid][$t] ?? 0;
             }
         }
+        
+        $row['คะแนนรวม'] = $total_score;
+        
         $final_results[] = $row;
     }
     

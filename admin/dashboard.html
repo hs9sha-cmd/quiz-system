@@ -951,7 +951,11 @@
                 
                 const headers = Object.keys(res.data[0]);
                 headers.forEach(h => {
-                    html += `<th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-secondary);">${h}</th>`;
+                    if (h === 'คะแนนรวม') {
+                        html += `<th style="padding: 0.75rem 1rem; font-weight: bold; color: white; background: var(--accent-blue);">${h}</th>`;
+                    } else {
+                        html += `<th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-secondary);">${h}</th>`;
+                    }
                 });
                 
                 html += `           </tr>
@@ -964,7 +968,11 @@
                     html += `<tr style="border-bottom: 1px solid var(--border-color); background: ${bg};">`;
                     headers.forEach(h => {
                         const val = row[h] !== null ? row[h] : '-';
-                        html += `<td style="padding: 0.75rem 1rem;">${val}</td>`;
+                        if (h === 'คะแนนรวม') {
+                            html += `<td style="padding: 0.75rem 1rem; font-weight: bold; color: var(--accent-blue); background: #e0f2fe;">${val}</td>`;
+                        } else {
+                            html += `<td style="padding: 0.75rem 1rem;">${val}</td>`;
+                        }
                     });
                     html += `</tr>`;
                 });
