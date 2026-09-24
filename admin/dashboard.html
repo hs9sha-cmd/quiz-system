@@ -301,8 +301,20 @@
                         </button>
                     </div>
                 </div>
+                
+                <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin:0; font-size: 1.5rem; color: #dc2626;">ล้างฐานข้อมูล (Reset System)</h3>
+                        <p style="color:var(--text-secondary); margin:0.5rem 0 0 0;">สำหรับล้างข้อมูลเมื่อขึ้นเทอมใหม่ ระบบจะลบนักเรียน ข้อสอบ และคะแนนทั้งหมด (ยกเว้นบัญชีครู)</p>
+                    </div>
+                    <div>
+                        <button onclick="clearDatabase()" class="btn btn-secondary" style="width: auto; padding: 0.75rem 1.5rem; background: #dc2626; color: white; border: none; display: flex; align-items: center; gap: 0.5rem;">
+                            🗑️ ล้างข้อมูลใหม่ทั้งหมด
+                        </button>
+                    </div>
+                </div>
 
-                <div style="margin-top: 1.5rem; padding: 1rem; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px;">
+                <div style="margin-top: 2.5rem; padding: 1rem; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px;">
                     <strong style="color: var(--text-primary);">คำแนะนำ:</strong> เมื่อสิ้นสุดเทอม ครูเอ็มสามารถดาวน์โหลดไฟล์นี้เก็บไว้ใน Google Drive เพื่อเป็นหลักฐานหรือใช้กู้คืนข้อมูลในอนาคตได้ค่ะ
                 </div>
             </div>
@@ -1062,6 +1074,33 @@
                 showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
             }
             fileInput.value = '';
+        }
+
+        async function clearDatabase() {
+            if (!confirm('🚨 คำเตือนขั้นสูงสุด: การกระทำนี้จะ "ลบข้อมูลทั้งหมด" ในระบบ!\n(รายชื่อนักเรียน, วิชา, ข้อสอบ, และคะแนนทั้งหมดจะหายไป)\n\nระบบจะเหลือเพียงบัญชีของคุณครูเท่านั้น\nคุณควรแน่ใจว่าได้ทำการสำรองฐานข้อมูล (Backup) ไว้เรียบร้อยแล้ว\n\nต้องการล้างข้อมูลเพื่อเริ่มเทอมใหม่ ใช่หรือไม่?')) {
+                return;
+            }
+            
+            // Second confirmation just to be safe
+            if (prompt('หากแน่ใจว่าต้องการล้างข้อมูลทั้งหมด พิมพ์คำว่า "ล้างข้อมูล" ในช่องด้านล่าง:') !== 'ล้างข้อมูล') {
+                showAlert('ยกเลิกการล้างข้อมูล (พิมพ์ข้อความไม่ถูกต้อง)');
+                return;
+            }
+            
+            showAlert('กำลังล้างข้อมูลในระบบ กรุณารอสักครู่...', 'success');
+            
+            try {
+                const response = await fetch('../api/clear_db.php', { method: 'POST' });
+                const res = await response.json();
+                if (res.success) {
+                    showAlert('ล้างข้อมูลสำเร็จ! ระบบกำลังโหลดใหม่...', 'success');
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    showAlert('เกิดข้อผิดพลาด: ' + res.message);
+                }
+            } catch (err) {
+                showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+            }
         }
 
         document.addEventListener('DOMContentLoaded', init);
