@@ -268,7 +268,7 @@ if ($action === 'add_question') {
     $exam_id = (int)$_GET['exam_id'];
     $room = trim($_GET['room'] ?? 'all');
     
-    $stmt = $pdo->prepare("SELECT title FROM exams WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT title, target_class_level, target_room FROM exams WHERE id = ?");
     $stmt->execute([$exam_id]);
     $exam = $stmt->fetch();
     
@@ -300,6 +300,15 @@ if ($action === 'add_question') {
         if ($rm !== 'all' && $rm !== '') {
             $query .= " AND u.room = ?";
             $params[] = $rm;
+        }
+    } else {
+        if ($exam['target_class_level'] !== 'all' && !empty($exam['target_class_level'])) {
+            $query .= " AND u.class_level = ?";
+            $params[] = $exam['target_class_level'];
+        }
+        if ($exam['target_room'] !== 'all' && !empty($exam['target_room'])) {
+            $query .= " AND u.room = ?";
+            $params[] = $exam['target_room'];
         }
     }
     
