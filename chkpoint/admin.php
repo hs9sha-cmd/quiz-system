@@ -19,11 +19,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $pdo->beginTransaction();
             // We loop through all POSTed subjects
             foreach ($_POST['subject_id'] as $index => $sub_id) {
+                $subj_code = trim($_POST['subject_code'][$index] ?? '');
+                $subj_name = trim($_POST['subject_name'][$index] ?? '');
                 $sheet_url = trim($_POST['sheet_url'][$index] ?? '');
                 $webhook = trim($_POST['webhook'][$index] ?? '');
                 
-                $stmt = $pdo->prepare("UPDATE subjects SET google_sheet_url = ?, webhook_url = ? WHERE id = ?");
-                $stmt->execute([$sheet_url, $webhook, $sub_id]);
+                $stmt = $pdo->prepare("UPDATE subjects SET subject_code = ?, subject_name = ?, google_sheet_url = ?, webhook_url = ? WHERE id = ?");
+                $stmt->execute([$subj_code, $subj_name, $sheet_url, $webhook, $sub_id]);
             }
             $pdo->commit();
             $message = 'อัปเดตการเชื่อมต่อ Google Sheets ของรายวิชาสำเร็จ';
@@ -147,7 +149,11 @@ $exams = $examStmt->fetchAll(PDO::FETCH_ASSOC);
                     
                     <?php foreach ($subjects as $subject): ?>
                         <div class="subject-slot">
-                            <h4>วิชา: <?= htmlspecialchars($subject['subject_code'] . ' - ' . $subject['subject_name']) ?></h4>
+                            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
+                                <h4 style="margin: 0;">วิชา:</h4>
+                                <input type="text" name="subject_code[]" value="<?= htmlspecialchars($subject['subject_code']) ?>" placeholder="รหัสวิชา (เช่น ว30101)" style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; width: 140px; font-weight: 600; font-size: 15px;">
+                                <input type="text" name="subject_name[]" value="<?= htmlspecialchars($subject['subject_name']) ?>" placeholder="ชื่อวิชา (เช่น วิทยาการคำนวณ)" style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; flex: 1; min-width: 200px; font-weight: 600; font-size: 15px;">
+                            </div>
                             <input type="hidden" name="subject_id[]" value="<?= $subject['id'] ?>">
                             <div class="subject-row">
                                 <div class="form-group subject-col" style="margin-bottom: 0;">
