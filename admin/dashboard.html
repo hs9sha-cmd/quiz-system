@@ -38,6 +38,7 @@
             <div class="nav-tab" onclick="switchTab('tab-questions', this)">คลังข้อสอบ</div>
             <div class="nav-tab" onclick="switchTab('tab-exams', this)">จัดการสอบ</div>
             <div class="nav-tab" onclick="switchTab('tab-export', this)">ผลสอบและส่งออก</div>
+            <div class="nav-tab" onclick="switchTab('tab-system', this)">ระบบ</div>
         </div>
         
         <!-- Tab: Students -->
@@ -272,6 +273,24 @@
                 </form>
                 
                 <div id="scores-table-container" style="margin-top: 2rem;"></div>
+            </div>
+        </div>
+        
+        <!-- Tab: System/Backup -->
+        <div id="tab-system" class="tab-content" style="display: none;">
+            <div class="glass-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin:0; font-size: 1.5rem;">สำรองฐานข้อมูล (Backup)</h3>
+                        <p style="color:var(--text-secondary); margin:0.5rem 0 0 0;">ดาวน์โหลดข้อมูลทั้งหมดในระบบ (รายชื่อนักเรียน, คลังข้อสอบ, คะแนนสอบทุกรายการ) เพื่อเก็บเป็นไฟล์ .sql</p>
+                    </div>
+                    <a href="../api/backup.php" class="btn btn-primary" style="text-decoration: none; width: auto; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        💾 ดาวน์โหลดข้อมูลทั้งหมด
+                    </a>
+                </div>
+                <div style="margin-top: 1.5rem; padding: 1rem; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px;">
+                    <strong style="color: var(--text-primary);">คำแนะนำ:</strong> เมื่อสิ้นสุดเทอม ครูเอ็มสามารถดาวน์โหลดไฟล์นี้เก็บไว้ใน Google Drive เพื่อเป็นหลักฐานหรือใช้กู้คืนข้อมูลในอนาคตได้ค่ะ
+                </div>
             </div>
         </div>
         <!-- Edit Student Modal -->
