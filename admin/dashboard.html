@@ -288,6 +288,20 @@
                         💾 ดาวน์โหลดข้อมูลทั้งหมด
                     </a>
                 </div>
+                
+                <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin:0; font-size: 1.5rem; color: var(--danger);">กู้คืนฐานข้อมูล (Restore)</h3>
+                        <p style="color:var(--text-secondary); margin:0.5rem 0 0 0;">อัปโหลดไฟล์ .sql ที่เคยสำรองไว้ ข้อมูลปัจจุบันทั้งหมดจะถูกแทนที่ด้วยข้อมูลในไฟล์นี้</p>
+                    </div>
+                    <div>
+                        <input type="file" id="restore-file" accept=".sql" style="display: none;" onchange="handleRestoreFile()">
+                        <button onclick="document.getElementById('restore-file').click()" class="btn btn-secondary" style="width: auto; padding: 0.75rem 1.5rem; border-color: var(--danger); color: var(--danger); display: flex; align-items: center; gap: 0.5rem;">
+                            ⚠️ อัปโหลดไฟล์กู้คืน (.sql)
+                        </button>
+                    </div>
+                </div>
+
                 <div style="margin-top: 1.5rem; padding: 1rem; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px;">
                     <strong style="color: var(--text-primary);">คำแนะนำ:</strong> เมื่อสิ้นสุดเทอม ครูเอ็มสามารถดาวน์โหลดไฟล์นี้เก็บไว้ใน Google Drive เพื่อเป็นหลักฐานหรือใช้กู้คืนข้อมูลในอนาคตได้ค่ะ
                 </div>
@@ -1010,6 +1024,46 @@
         }
 
         async function logout() { await adminApiCall('auth.php', { action: 'logout' }); window.location.href = '../index.html'; }
+
+        async function handleRestoreFile() {
+            const fileInput = document.getElementById('restore-file');
+            const file = fileInput.files[0];
+            if (!file) return;
+            
+            if (!file.name.endsWith('.sql')) {
+                showAlert('กรุณาอัปโหลดไฟล์ .sql เท่านั้น');
+                fileInput.value = '';
+                return;
+            }
+            
+            if (!confirm('คำเตือนระดับอันตราย: การกู้คืนข้อมูลจะ "ลบ" ข้อมูลปัจจุบันในระบบทั้งหมดอย่างถาวร!\nและจะถูกแทนที่ด้วยข้อมูลจากไฟล์นี้ทั้งหมด\n\nคุณแน่ใจหรือไม่ว่าต้องการดำเนินการต่อ?')) {
+                fileInput.value = '';
+                return;
+            }
+            
+            showAlert('กำลังกู้คืนข้อมูล กรุณารอสักครู่... ห้ามปิดหน้านี้เด็ดขาด', 'success');
+            
+            const formData = new FormData();
+            formData.append('backup_file', file);
+            
+            try {
+                const response = await fetch('../api/restore.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const res = await response.json();
+                if (res.success) {
+                    showAlert('กู้คืนฐานข้อมูลสำเร็จ! ระบบกำลังโหลดใหม่...', 'success');
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    showAlert('เกิดข้อผิดพลาด: ' + res.message);
+                }
+            } catch (err) {
+                showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+            }
+            fileInput.value = '';
+        }
+
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
