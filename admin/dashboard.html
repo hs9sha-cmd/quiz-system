@@ -253,13 +253,13 @@
                 <form id="export-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
                         <label>เลือกการสอบ</label>
-                        <select name="export_exam_id" id="export-exam-select" required>
+                        <select name="export_exam_id" id="export-exam-select" onchange="viewScores()" required>
                             <option value="">-- เลือกการสอบ --</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>เลือกห้องเป้าหมาย</label>
-                        <select name="export_room" id="export-room-select" required>
+                        <select name="export_room" id="export-room-select" onchange="viewScores()" required>
                             <option value="all">-- ทุกห้อง --</option>
                         </select>
                     </div>
@@ -267,8 +267,7 @@
                         <input type="hidden" id="export-format" value="xlsx">
                     </div>
                     <div style="grid-column: 1 / -1; display: flex; gap: 1rem;">
-                        <button type="button" class="btn" style="width: auto; padding: 0.75rem 2rem; background: #64748b; color: white; border: none; cursor: pointer; border-radius: 8px; font-weight: 500;" onclick="viewScores()">ดูคะแนนบนเว็บ</button>
-                        <button type="submit" class="btn btn-primary" style="width: auto; padding: 0.75rem 2rem;">ดาวน์โหลดไฟล์ CSV</button>
+                        <button type="submit" class="btn btn-primary" style="width: auto; padding: 0.75rem 2rem;">ดาวน์โหลดไฟล์ Excel (.xlsx)</button>
                     </div>
                 </form>
                 
@@ -912,7 +911,7 @@
             const container = document.getElementById('scores-table-container');
             
             if (!examId) {
-                showAlert('กรุณาเลือกการสอบ');
+                container.innerHTML = '';
                 return;
             }
             

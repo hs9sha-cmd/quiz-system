@@ -281,10 +281,10 @@ if ($action === 'add_question') {
         SELECT CAST(u.roll_number AS UNSIGNED) as 'เลขที่', u.username as 'รหัสนักเรียน', 
                CONCAT(u.first_name, ' ', u.last_name) as 'ชื่อ-สกุล', 
                CONCAT(u.class_level, '/', u.room) as 'ชั้น', 
-               MAX(ea.raw_score) as 'คะแนน' 
+               COALESCE(CAST(MAX(ea.raw_score) AS CHAR), 'ยังไม่ได้เข้าสอบ') as 'คะแนน' 
         FROM users u 
-        JOIN exam_attempts ea ON u.id = ea.student_id 
-        WHERE ea.exam_id = ? AND u.role = 'student' AND ea.status = 'submitted'
+        LEFT JOIN exam_attempts ea ON u.id = ea.student_id AND ea.exam_id = ? AND ea.status = 'submitted'
+        WHERE u.role = 'student'
     ";
     
     $params = [$exam_id];
