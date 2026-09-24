@@ -544,6 +544,7 @@
                     <td style="padding: 1rem;">${s.first_name} ${s.last_name}</td>
                     <td style="padding: 1rem;">
                         <button onclick="openEditStudentModal(${s.id})" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto; background: var(--accent-blue); color: white; border: none; margin-right: 0.5rem;">แก้ไข</button>
+                        <button onclick="deleteSingleStudent(${s.id})" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto; background: var(--danger); color: white; border: none; margin-right: 0.5rem;">ลบ</button>
                         <button onclick="resetPassword(${s.id})" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;">รีเซ็ตรหัส</button>
                     </td>
                 </tr>
@@ -570,6 +571,17 @@
                 const res = await adminApiCall('admin.php', { action: 'delete_students', ids: ids.join(',') });
                 if (res.success) {
                     showAlert(res.message, 'success');
+                    loadStudents();
+                } else {
+                    showAlert(res.message);
+                }
+            }
+        }
+        async function deleteSingleStudent(id) {
+            if (confirm('คุณต้องการลบนักเรียนคนนี้ ใช่หรือไม่?\n(ข้อมูลการสอบและคะแนนทั้งหมดของนักเรียนจะถูกลบด้วย)')) {
+                const res = await adminApiCall('admin.php', { action: 'delete_students', ids: id });
+                if (res.success) {
+                    showAlert('ลบนักเรียนสำเร็จ', 'success');
                     loadStudents();
                 } else {
                     showAlert(res.message);
