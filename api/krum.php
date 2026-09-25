@@ -95,20 +95,21 @@ if ($action === 'add_question') {
     echo json_encode(['success' => true, 'questions' => $stmt->fetchAll()]);
 
 } elseif ($action === 'get_form_options') {
-    $stmt1 = $pdo->query("SELECT DISTINCT unit, topic FROM questions ORDER BY unit, topic");
+    $stmt1 = $pdo->query("SELECT unit, topic, SUM(points) as available_points FROM questions GROUP BY unit, topic ORDER BY unit, topic");
     $unit_topics = $stmt1->fetchAll(PDO::FETCH_ASSOC);
     
-    // Group topics by unit
+    // Group topics by unit with points
     $hierarchy = [];
     foreach($unit_topics as $row) {
         $u = $row['unit'] ?: 'ทั่วไป';
         $t = $row['topic'] ?: 'ทั่วไป';
+        $p = $row['available_points'] ?: 0;
+        
         if (!isset($hierarchy[$u])) {
             $hierarchy[$u] = [];
         }
-        if (!in_array($t, $hierarchy[$u])) {
-            $hierarchy[$u][] = $t;
-        }
+        // Instead of string, we'll keep it as object {name, points}
+        $hierarchy[$u][] = ['name' => $t, 'points' => $p];
     }
 
     $stmt2 = $pdo->query("SELECT DISTINCT class_level, room FROM users WHERE role='student' AND class_level != '' ORDER BY class_level, room");

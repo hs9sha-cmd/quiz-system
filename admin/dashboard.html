@@ -455,7 +455,9 @@
             
             let unitOptions = '<option value="*">-- สุ่มทุก Unit --</option>';
             Object.keys(window.blueprintHierarchy).forEach(u => {
-                unitOptions += `<option value="${u}">${u}</option>`;
+                let unitPoints = 0;
+                window.blueprintHierarchy[u].forEach(t => unitPoints += parseInt(t.points || 0));
+                unitOptions += `<option value="${u}">${u} (รวม ${unitPoints} คะแนน)</option>`;
             });
             
             unitBox.innerHTML = `
@@ -504,7 +506,9 @@
             let topicOptions = '<option value="*">-- สุ่มทุกเรื่องใน Unit นี้ --</option>';
             if (unit !== '*' && window.blueprintHierarchy[unit]) {
                 window.blueprintHierarchy[unit].forEach(t => {
-                    topicOptions += `<option value="${t}">${t}</option>`;
+                    const topicName = t.name || t; // Fallback in case of old cache
+                    const topicPoints = t.points !== undefined ? t.points : '?';
+                    topicOptions += `<option value="${topicName}">${topicName} (มี ${topicPoints} คะแนน)</option>`;
                 });
             }
             
