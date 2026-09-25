@@ -315,6 +315,18 @@
                 </div>
             </div>
         </div>
+        <!-- Exam Details Modal -->
+        <div id="exam-details-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+            <div class="glass-card" style="background: white; width: 100%; max-width: 600px; padding: 2rem; position: relative; max-height: 90vh; overflow-y: auto;">
+                <h3 style="margin-top: 0;" id="exam-details-title">รายละเอียดการสอบ</h3>
+                <div id="exam-details-content" style="margin-top: 1rem;">
+                </div>
+                <div style="margin-top: 2rem; text-align: right;">
+                    <button type="button" class="btn btn-secondary" style="width: auto;" onclick="document.getElementById('exam-details-modal').style.display='none'">ปิดหน้าต่าง</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Edit Student Modal -->
         <div id="edit-student-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
             <div class="glass-card" style="background: white; width: 100%; max-width: 500px; padding: 2rem; position: relative;">
@@ -735,6 +747,46 @@
             }
         }
 
+        function viewExamDetails(examId) {
+            const exam = window.allExams.find(e => e.id == examId);
+            if (!exam) return;
+            
+            document.getElementById('exam-details-title').innerText = `โครงสร้างข้อสอบ: ${exam.title}`;
+            
+            let blueprintHtml = '';
+            try {
+                const blueprint = JSON.parse(exam.topic);
+                if (Array.isArray(blueprint)) {
+                    blueprintHtml += '<table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">';
+                    blueprintHtml += '<thead><tr style="background: var(--bg-light);"><th style="padding: 0.5rem; border: 1px solid var(--border-color);">หัวข้อหลัก (Unit)</th><th style="padding: 0.5rem; border: 1px solid var(--border-color);">เรื่องย่อย (Topic)</th><th style="padding: 0.5rem; border: 1px solid var(--border-color); text-align: center;">คะแนน</th></tr></thead>';
+                    blueprintHtml += '<tbody>';
+                    let total = 0;
+                    blueprint.forEach(bp => {
+                        const unitLabel = bp.unit === '*' ? 'สุ่มทุก Unit' : (bp.unit || '-');
+                        const topicLabel = bp.topic === '*' ? 'สุ่มทุกเรื่องใน Unit' : (bp.topic || '-');
+                        blueprintHtml += `<tr>
+                            <td style="padding: 0.5rem; border: 1px solid var(--border-color);">${unitLabel}</td>
+                            <td style="padding: 0.5rem; border: 1px solid var(--border-color);">${topicLabel}</td>
+                            <td style="padding: 0.5rem; border: 1px solid var(--border-color); text-align: center;">${bp.score}</td>
+                        </tr>`;
+                        total += parseInt(bp.score || 0);
+                    });
+                    blueprintHtml += `<tr style="font-weight: bold; background: #f8fafc;">
+                        <td colspan="2" style="padding: 0.5rem; border: 1px solid var(--border-color); text-align: right;">รวมคะแนนทั้งหมด:</td>
+                        <td style="padding: 0.5rem; border: 1px solid var(--border-color); text-align: center;">${total}</td>
+                    </tr>`;
+                    blueprintHtml += '</tbody></table>';
+                } else {
+                    blueprintHtml = `<p>โครงสร้างแบบเก่า (Legacy): ${exam.topic}</p>`;
+                }
+            } catch(e) {
+                blueprintHtml = `<p>หัวข้อ: ${exam.topic}</p><p>คะแนนเต็ม: ${exam.target_raw_score}</p>`;
+            }
+            
+            document.getElementById('exam-details-content').innerHTML = blueprintHtml;
+            document.getElementById('exam-details-modal').style.display = 'flex';
+        }
+
         async function loadExams() {
             const res = await adminApiCall('krum.php?action=list_exams');
             if (res.success) {
@@ -745,6 +797,7 @@
                         <td>${e.target_class_level ? `${e.target_class_level}/${e.target_room}` : 'ทั้งหมด'}</td>
                         <td>${e.is_active == 1 ? '<span style="color:var(--success)">เปิด</span>' : '<span style="color:var(--text-secondary)">ปิด</span>'}</td>
                         <td>
+                            <button onclick="viewExamDetails(${e.id})" class="btn" style="background:#f1f5f9; color:var(--text-primary); border:1px solid #cbd5e1; padding:0.25rem 0.5rem; font-size:0.8rem; margin-right:0.5rem; width:auto;">รายละเอียด</button>
                             <button onclick="toggleExam(${e.id}, ${e.is_active == 1 ? 0 : 1})" class="btn ${e.is_active == 1 ? 'btn-danger' : 'btn-success'}" style="padding:0.25rem 0.5rem; font-size:0.8rem; margin-right:0.5rem; width:auto;">
                                 ${e.is_active == 1 ? 'ปิดสอบ' : 'เปิดสอบ'}
                             </button>
