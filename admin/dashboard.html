@@ -167,6 +167,11 @@
                         </select>
                     </div>
                 </div>
+                
+                <div id="questions-summary-badge" style="margin-top: 1rem; padding: 0.75rem 1rem; background: #e0f2fe; color: #0284c7; border-radius: 8px; border: 1px solid #bae6fd; display: flex; justify-content: space-between; font-size: 0.95rem;">
+                    <span>รวมข้อสอบที่พบ: <strong>0</strong> ข้อ</span>
+                    <span>คะแนนสะสมในคลัง: <strong>0</strong> คะแนน</span>
+                </div>
 
                 <div style="margin-top: 1rem; overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse;">
@@ -681,6 +686,17 @@
             }
             if (selectedTopic) {
                 filtered = filtered.filter(q => (q.topic || 'ทั่วไป') === selectedTopic);
+            }
+            
+            let totalPoints = 0;
+            filtered.forEach(q => totalPoints += parseInt(q.points || 0));
+            
+            const summaryBadge = document.getElementById('questions-summary-badge');
+            if (summaryBadge) {
+                summaryBadge.innerHTML = `
+                    <span>รวมข้อสอบที่พบ: <strong>${filtered.length}</strong> ข้อ</span>
+                    <span>คะแนนสะสมในคลัง: <strong style="font-size: 1.2em;">${totalPoints}</strong> คะแนน</span>
+                `;
             }
             
             document.getElementById('questions-list').innerHTML = filtered.map(q => `
