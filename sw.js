@@ -1,5 +1,5 @@
 // sw.js - Service Worker for Teach With Kru.M PWA
-const CACHE_NAME = 'krum-quiz-v1';
+const CACHE_NAME = 'krum-quiz-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',

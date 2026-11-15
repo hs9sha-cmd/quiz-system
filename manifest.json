@@ -1,12 +1,12 @@
 {
-  "name": "Teach With Kru.M",
-  "short_name": "Kru.M Quiz",
-  "description": "ระบบสอบออนไลน์ Teach With Kru.M",
+  "name": "TWM - Teach With Kru.M",
+  "short_name": "TWM",
+  "description": "ระบบสอบออนไลน์ Teach With Kru.M (TWM)",
   "start_url": "index.html",
-  "id": "teach-with-kru-m-quiz",
+  "id": "twm-krum-quiz",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0071e3",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait-primary",
   "icons": [
     {
