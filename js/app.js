@@ -58,3 +58,13 @@ function showAlert(message, type = 'error', containerId = 'alert-container') {
 document.addEventListener('DOMContentLoaded', () => {
     renderFooter();
 });
+
+// Register Service Worker for PWA / Add to Home Screen
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        const swUrl = document.querySelector('link[rel="manifest"]')?.href?.replace('manifest.json', 'sw.js') || 'sw.js';
+        navigator.serviceWorker.register(swUrl).catch(err => {
+            console.log('SW registration error:', err);
+        });
+    });
+}
