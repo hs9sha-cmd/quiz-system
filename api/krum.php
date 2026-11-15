@@ -10,6 +10,24 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
     exit;
 }
 
+// Auto-heal: Ensure default subject and score structure exist
+try {
+    $checkSubject = $pdo->query("SELECT id FROM subjects WHERE id = 1")->fetch();
+    if (!$checkSubject) {
+        $tStmt = $pdo->query("SELECT id FROM users WHERE role = 'teacher' ORDER BY id ASC LIMIT 1");
+        $teacherId = $tStmt ? $tStmt->fetchColumn() : null;
+        if (!$teacherId) {
+            $teacherId = $_SESSION['user_id'] ?? 1;
+        }
+        $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
+        $pdo->exec("INSERT INTO subjects (id, subject_code, subject_name, teacher_id) VALUES (1, 'GEN', 'วิชาทั่วไป', " . (int)$teacherId . ") ON DUPLICATE KEY UPDATE id=id");
+        $pdo->exec("INSERT INTO score_structures (id, subject_id, title, max_raw_score, max_net_score, order_index) VALUES (1, 1, 'ทั่วไป', 100, 100.00, 1) ON DUPLICATE KEY UPDATE id=id");
+        $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+    }
+} catch (Exception $e) {
+    // Fail silently if DB permission prevents check
+}
+
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 if ($action === 'add_question') {

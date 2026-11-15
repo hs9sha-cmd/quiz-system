@@ -22,6 +22,13 @@ try {
     TRUNCATE TABLE score_structures;
     TRUNCATE TABLE subjects;
     DELETE FROM users WHERE role != 'teacher';
+    
+    INSERT INTO subjects (id, subject_code, subject_name, teacher_id) 
+    SELECT 1, 'GEN', 'วิชาทั่วไป', id FROM users WHERE role = 'teacher' ORDER BY id ASC LIMIT 1;
+    
+    INSERT INTO score_structures (id, subject_id, title, max_raw_score, max_net_score, order_index)
+    VALUES (1, 1, 'ทั่วไป', 100, 100.00, 1);
+
     SET FOREIGN_KEY_CHECKS = 1;
     ";
     
